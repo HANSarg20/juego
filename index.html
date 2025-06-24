@@ -182,20 +182,17 @@
     <div id="game-container">
         <canvas id="gameCanvas" width="800" height="600"></canvas>
         
-        <!-- Contenedor para las barras de información superiores -->
         <div class="info-display-container">
             <div id="score-display" class="info-box">Puntuación: <span id="score">0</span></div>
             <div id="level-display" class="info-box">Nivel: <span id="level">1</span></div>
             <div id="missed-display" class="info-box">Perdidos: <span id="missed">0</span> / 5</div>
         </div>
 
-        <!-- Barra de vida del jugador (cañón) -->
         <div id="player-health-bar-container">
             <div id="player-health-bar-fill"></div>
             <span id="player-health-text">100 / 100</span>
         </div>
 
-        <!-- Mensaje de inicio/fin del juego -->
         <div id="game-message">
             <p id="message-text">Haz clic en Jugar para comenzar</p>
             <button id="start-button">Jugar</button>
@@ -220,7 +217,7 @@
         let score = 0;
         let missedTargets = 0;
         const MAX_MISSED_TARGETS_PER_LEVEL = 5; // Máximos objetivos perdidos antes de bajar vida del jugador
-        let gameState = 'IDLE'; // Estados: 'IDLE', 'PLAYING', 'BOSS_STAGE', 'LEVEL_UP_PAUSE', 'GAME_OVER', 'VICTORY'
+        let gameState = 'IDLE'; // Estados: 'IDLE', 'PLAYING', 'BOSS_STAGE_PAUSE', 'BOSS_FIGHT', 'LEVEL_UP_PAUSE', 'GAME_OVER', 'VICTORY'
         
         let currentLevel = 1;
         const MAX_LEVEL = 20;
@@ -239,8 +236,7 @@
             health: 100,              // Vida del cañón
             maxHealth: 100,
             bulletsPerShot: 1,        // Cuántas balas dispara por ráfaga
-            bulletSpread: 10,         // Espaciado entre balas si hay más de una (ajustado para que se vean)
-            lastRifleLevelUp: 0,      // Para controlar cuándo se mejora el rifle
+            bulletSpread: 15,         // Espaciado entre balas si hay más de una (ajustado para que se vean)
         };
 
         // Arrays para balas y objetivos
@@ -308,41 +304,28 @@
         
         // --- Funciones de Dibujo ---
 
-        // Dibuja el jugador (cañón) en el canvas
         function drawPlayer() {
-            // Asegurarse de que el cañón siempre se dibuje dentro de los límites
             player.x = Math.max(0, Math.min(player.x, canvas.width - player.width));
-
-            // Cuerpo principal del cañón
             ctx.fillStyle = player.color;
             ctx.fillRect(player.x, player.y, player.width, player.height);
-
-            // Cañón (parte superior del cañón)
-            ctx.fillRect(player.x + player.width / 2 - player.barrelWidth / 2,
-                         player.y - player.barrelHeight,
-                         player.barrelWidth,
-                         player.barrelHeight);
-
-            // Base redondeada del cañón para un mejor aspecto
+            ctx.fillRect(player.x + player.width / 2 - player.barrelWidth / 2, player.y - player.barrelHeight, player.barrelWidth, player.barrelHeight);
             ctx.beginPath();
             ctx.arc(player.x + player.width / 2, player.y + player.height, player.width / 2, 0, Math.PI, true);
             ctx.fill();
             ctx.closePath();
         }
 
-        // Dibuja una bala del jugador
         function drawBullet(bullet) {
             ctx.beginPath();
             ctx.arc(bullet.x, bullet.y, bullet.radius, 0, Math.PI * 2);
             ctx.fillStyle = bullet.color;
             ctx.shadowColor = bullet.color;
-            ctx.shadowBlur = 15; // Efecto de resplandor para las balas
+            ctx.shadowBlur = 15;
             ctx.fill();
             ctx.closePath();
-            ctx.shadowBlur = 0; // Resetear el resplandor para otros dibujos
+            ctx.shadowBlur = 0;
         }
 
-        // Dibuja un proyectil de la reina
         function drawQueenProjectile(proj) {
             ctx.beginPath();
             ctx.arc(proj.x, proj.y, proj.radius, 0, Math.PI * 2);
@@ -354,144 +337,98 @@
             ctx.shadowBlur = 0;
         }
 
-        // Dibuja un insecto (objetivo) con barra de vida
         function drawTarget(target) {
-            // Dibujar el cuerpo (óvalo)
             ctx.fillStyle = target.color;
             ctx.beginPath();
             ctx.ellipse(target.x + target.size / 2, target.y + target.size / 2 + (target.isQueen ? 15 : 5), target.size / 2 * 0.8, target.size / 2 * 1.2, Math.PI / 2, 0, Math.PI * 2);
             ctx.fill();
             ctx.closePath();
-
-            // Dibujar la cabeza (círculo)
             ctx.beginPath();
             ctx.arc(target.x + target.size / 2, target.y + target.size / 2 - (target.isQueen ? 5 : 10), target.size / (target.isQueen ? 3 : 4), 0, Math.PI * 2);
             ctx.fill();
             ctx.closePath();
-
-            // Dibujar ojos
-            ctx.fillStyle = target.isQueen ? QUEEN_EYE_COLOR : targetEyeColor; // Ojos de reina rojos
+            ctx.fillStyle = target.isQueen ? QUEEN_EYE_COLOR : targetEyeColor;
             ctx.beginPath();
             ctx.arc(target.x + target.size / 2 - target.size / (target.isQueen ? 5 : 8), target.y + target.size / 2 - (target.isQueen ? 8 : 12), target.size / (target.isQueen ? 8 : 10), 0, Math.PI * 2);
             ctx.arc(target.x + target.size / 2 + target.size / (target.isQueen ? 5 : 8), target.y + target.size / 2 - (target.isQueen ? 8 : 12), target.size / (target.isQueen ? 8 : 10), 0, Math.PI * 2);
             ctx.fill();
             ctx.closePath();
-
-            // Dibujar antenas (líneas)
-            ctx.strokeStyle = target.isQueen ? QUEEN_LIMB_COLOR : targetLimbColor; // Extremidades de reina
-            ctx.lineWidth = target.isQueen ? 3 : 2; // Más gruesas para la reina
+            ctx.strokeStyle = target.isQueen ? QUEEN_LIMB_COLOR : targetLimbColor;
+            ctx.lineWidth = target.isQueen ? 3 : 2;
             ctx.beginPath();
             ctx.moveTo(target.x + target.size / 2 - target.size / (target.isQueen ? 5 : 8), target.y + target.size / 2 - (target.isQueen ? 8 : 12));
             ctx.lineTo(target.x + target.size / 2 - target.size / (target.isQueen ? 3 : 4), target.y + target.size / 2 - target.size / 2);
             ctx.moveTo(target.x + target.size / 2 + target.size / (target.isQueen ? 5 : 8), target.y + target.size / 2 - (target.isQueen ? 8 : 12));
             ctx.lineTo(target.x + target.size / 2 + target.size / (target.isQueen ? 3 : 4), target.y + target.size / 2 - target.size / 2);
             ctx.stroke();
-
-            // Dibujar patas (líneas) - 2 pares
             ctx.beginPath();
-            // Primer par
             ctx.moveTo(target.x + target.size / 2 - target.size / 3, target.y + target.size / 2 + (target.isQueen ? 10 : 5));
             ctx.lineTo(target.x + target.size / 2 - target.size / 3 - (target.isQueen ? 15 : 10), target.y + target.size / 2 + (target.isQueen ? 25 : 15));
             ctx.moveTo(target.x + target.size / 2 + target.size / 3, target.y + target.size / 2 + (target.isQueen ? 10 : 5));
             ctx.lineTo(target.x + target.size / 2 + target.size / 3 + (target.isQueen ? 15 : 10), target.y + target.size / 2 + (target.isQueen ? 25 : 15));
-            // Segundo par (más abajo para la reina)
             ctx.moveTo(target.x + target.size / 2 - target.size / 4, target.y + target.size / 2 + (target.isQueen ? 20 : 15));
             ctx.lineTo(target.x + target.size / 2 - target.size / 4 - (target.isQueen ? 12 : 8), target.y + target.size / 2 + (target.isQueen ? 35 : 25));
             ctx.moveTo(target.x + target.size / 2 + target.size / 4, target.y + target.size / 2 + (target.isQueen ? 20 : 15));
             ctx.lineTo(target.x + target.size / 2 + target.size / 4 + (target.isQueen ? 12 : 8), target.y + target.size / 2 + (target.isQueen ? 35 : 25));
             ctx.stroke();
-            ctx.lineWidth = 1; // Resetear grosor de línea
-
-            // Dibujar barra de vida del objetivo
-            const healthBarWidth = target.size * (target.isQueen ? 1.5 : 1); // La barra de la reina es más grande
+            ctx.lineWidth = 1;
+            const healthBarWidth = target.size * (target.isQueen ? 1.5 : 1);
             const healthBarHeight = target.isQueen ? 8 : 5;
-            const healthBarX = target.x + (target.size - healthBarWidth) / 2; // Centrar barra
-            const healthBarY = target.y - healthBarHeight - 10; // Arriba del insecto
-
-            ctx.fillStyle = '#ff0000'; // Rojo para el fondo de la barra de vida (vacío)
+            const healthBarX = target.x + (target.size - healthBarWidth) / 2;
+            const healthBarY = target.y - healthBarHeight - 10;
+            ctx.fillStyle = '#ff0000';
             ctx.fillRect(healthBarX, healthBarY, healthBarWidth, healthBarHeight);
-
-            ctx.fillStyle = '#00ff00'; // Verde para el relleno de la barra de vida
+            ctx.fillStyle = '#00ff00';
             const currentHealthWidth = (target.health / target.maxHealth) * healthBarWidth;
             ctx.fillRect(healthBarX, healthBarY, currentHealthWidth, healthBarHeight);
-
-            ctx.strokeStyle = '#333'; // Borde de la barra de vida
+            ctx.strokeStyle = '#333';
             ctx.strokeRect(healthBarX, healthBarY, healthBarWidth, healthBarHeight);
         }
 
         // --- Lógica del Juego ---
 
-        // Actualiza la barra de vida del jugador en el HTML
         function updatePlayerHealthDisplay() {
-            const percentage = (player.health / player.maxHealth) * 100;
+            const percentage = Math.max(0, (player.health / player.maxHealth) * 100);
             playerHealthBarFill.style.width = `${percentage}%`;
-            playerHealthText.textContent = `${player.health} / ${player.maxHealth}`;
-
-            // Cambiar color de la barra según la vida
-            if (percentage > 60) {
-                playerHealthBarFill.style.backgroundColor = '#28a745'; // Verde
-            } else if (percentage > 30) {
-                playerHealthBarFill.style.backgroundColor = '#ffc107'; // Amarillo
-            } else {
-                playerHealthBarFill.style.backgroundColor = '#dc3545'; // Rojo
-            }
+            playerHealthText.textContent = `${Math.max(0, player.health)} / ${player.maxHealth}`;
+            if (percentage > 60) playerHealthBarFill.style.backgroundColor = '#28a745';
+            else if (percentage > 30) playerHealthBarFill.style.backgroundColor = '#ffc107';
+            else playerHealthBarFill.style.backgroundColor = '#dc3545';
         }
-
-        // Actualiza el estado de todos los elementos del juego (movimiento, colisiones, etc.)
+        
         function update() {
-            // Si el jugador no tiene vida, el juego termina
-            if (player.health <= 0) {
+            if (player.health <= 0 && gameState !== 'GAME_OVER') {
                 endGame('GAME_OVER');
                 return;
             }
 
-            // Actualizar balas del jugador: moverlas hacia arriba
             for (let i = bullets.length - 1; i >= 0; i--) {
                 bullets[i].y -= bulletSpeed;
-                // Eliminar balas que salen de la pantalla
-                if (bullets[i].y + bullets[i].radius < 0) {
-                    bullets.splice(i, 1);
-                }
+                if (bullets[i].y + bullets[i].radius < 0) bullets.splice(i, 1);
             }
 
-            // Actualizar proyectiles de la reina: moverlos hacia abajo
             for (let i = queenProjectiles.length - 1; i >= 0; i--) {
                 queenProjectiles[i].y += queenProjectileSpeed;
-                // Eliminar proyectiles que salen de la pantalla
-                if (queenProjectiles[i].y - queenProjectiles[i].radius > canvas.height) {
-                    queenProjectiles.splice(i, 1);
-                }
+                if (queenProjectiles[i].y - queenProjectiles[i].radius > canvas.height) queenProjectiles.splice(i, 1);
             }
 
-            // Actualizar objetivos (insectos normales y/o reina)
             for (let i = targets.length - 1; i >= 0; i--) {
                 const target = targets[i];
                 target.y += target.speed;
-
-                // Si un objetivo sale por la parte inferior
                 if (target.y - target.size > canvas.height) {
-                    targets.splice(i, 1); // Eliminar objetivo
-
+                    targets.splice(i, 1);
                     if (target.isQueen) {
-                        player.health -= QUEEN_DAMAGE_ON_ESCAPE; // La reina hace más daño
+                        player.health -= QUEEN_DAMAGE_ON_ESCAPE;
                         updatePlayerHealthDisplay();
-                        queen = null; // La reina se fue
-                        queenProjectiles.length = 0; // Limpiar proyectiles de la reina
-
-                        if (player.health <= 0) {
-                            endGame('GAME_OVER');
-                            return;
-                        } else {
-                            // Si el jugador sobrevive, avanza al siguiente nivel
-                            levelPassed(); // El nivel se considera pasado aunque la reina escapó
-                        }
+                        queen = null;
+                        queenProjectiles.length = 0;
+                        if (player.health <= 0) endGame('GAME_OVER');
+                        else levelPassed();
                     } else {
-                        // Es un insecto normal perdido
-                        missedTargets++;     // Incrementar contador de perdidos en el nivel
-                        // Cada vez que se pierden MAX_MISSED_TARGETS_PER_LEVEL objetivos, el jugador pierde vida
+                        missedTargets++;
                         if (missedTargets >= MAX_MISSED_TARGETS_PER_LEVEL) {
-                            player.health -= 10; // Pierde 10 de vida por cada bloque de 5 bichos perdidos
-                            missedTargets = 0; // Resetear contador de perdidos para este nivel
+                            player.health -= 10;
+                            missedTargets = 0;
                             updatePlayerHealthDisplay();
                             if (player.health <= 0) {
                                 endGame('GAME_OVER');
@@ -503,93 +440,62 @@
                 }
             }
 
-            // Generar nuevos objetivos (solo si estamos en modo PLAYING y no hay reina en pantalla)
             const currentTime = Date.now();
             if (gameState === 'PLAYING' && queen === null) {
                 if (insectsDestroyedThisLevel >= INSECTS_TO_LEVEL_UP) {
-                    // Si se destruyeron suficientes insectos, invocar a la reina
-                    spawnQueen(); 
+                    spawnQueen();
                 } else if (currentTime - lastTargetSpawnTime > targetSpawnInterval) {
                     spawnTarget();
                     lastTargetSpawnTime = currentTime;
                 }
-            } else if (gameState === 'BOSS_STAGE' && queen !== null) {
-                // Lógica de ataque de la reina
+            } else if (gameState === 'BOSS_FIGHT' && queen !== null) {
                 if (currentTime - lastQueenShotTime > queenFireRate) {
                     queenAttack();
                     lastQueenShotTime = currentTime;
                 }
             }
 
-            // Detección de colisiones (bala del jugador vs objetivo/reina)
             for (let i = bullets.length - 1; i >= 0; i--) {
                 for (let j = targets.length - 1; j >= 0; j--) {
                     const bullet = bullets[i];
                     const target = targets[j];
-
-                    // Comprobación de colisión (distancia entre centros de bala y centro de cuerpo del insecto)
                     const targetCenterX = target.x + target.size / 2;
-                    const targetCenterY = target.y + target.size / 2 + (target.isQueen ? 15 : 5); // Ajuste para el óvalo
-
-                    const distSq = (bullet.x - targetCenterX) ** 2 + (bullet.y - targetCenterY) ** 2;
-                    // Radio de colisión basado en el tamaño efectivo del cuerpo del insecto/reina
+                    const targetCenterY = target.y + target.size / 2 + (target.isQueen ? 15 : 5);
                     const collisionRadius = target.size / 2 * (target.isQueen ? 1.0 : 0.8);
-                    const minDistanceSq = (bullet.radius + collisionRadius) ** 2;
-
-                    if (distSq < minDistanceSq) {
-                        // Colisión detectada
-                        target.health -= bulletDamage; // Bajar vida del insecto por el daño de la bala
-                        if (soundHit) {
-                            // Clonar el sonido para que múltiples impactos puedan reproducirse simultáneamente
-                            const hitClone = soundHit.cloneNode();
-                            hitClone.volume = soundHit.volume; // Mantener volumen
-                            hitClone.play();
-                        }
-                        bullets.splice(i, 1); // Eliminar bala
-                        
+                    const distSq = (bullet.x - targetCenterX) ** 2 + (bullet.y - targetCenterY) ** 2;
+                    if (distSq < (bullet.radius + collisionRadius) ** 2) {
+                        target.health -= bulletDamage;
+                        const hitClone = soundHit.cloneNode();
+                        hitClone.volume = soundHit.volume;
+                        hitClone.play().catch(e => console.log("Error playing hit sound:", e));
+                        bullets.splice(i, 1);
                         if (target.health <= 0) {
-                            if (soundExplosion) {
-                                const explosionClone = soundExplosion.cloneNode();
-                                explosionClone.volume = soundExplosion.volume;
-                                explosionClone.play();
-                            }
-                            score += target.isQueen ? 500 * currentLevel : 10; // Reina da muchos más puntos
+                            const explosionClone = soundExplosion.cloneNode();
+                            explosionClone.volume = soundExplosion.volume;
+                            explosionClone.play().catch(e => console.log("Error playing explosion sound:", e));
+                            score += target.isQueen ? 500 * currentLevel : 10;
                             scoreDisplay.textContent = score;
-                            targets.splice(j, 1); // Eliminar objetivo
-
+                            targets.splice(j, 1);
                             if (target.isQueen) {
-                                queen = null; // La reina ha sido derrotada
-                                queenProjectiles.length = 0; // Limpiar proyectiles de la reina
-                                levelPassed(); // Pasa al siguiente nivel
+                                queen = null;
+                                queenProjectiles.length = 0;
+                                levelPassed();
                             } else {
-                                insectsDestroyedThisLevel++; // Contar insectos normales destruidos para el nivel
-                                // La invocación de la reina se maneja en el bucle 'update' principal
+                                insectsDestroyedThisLevel++;
                             }
                         }
-                        break; // Salir del bucle interno, la bala ya fue destruida
+                        break;
                     }
                 }
             }
 
-            // Detección de colisiones (proyectil de la reina vs jugador)
             for (let i = queenProjectiles.length - 1; i >= 0; i--) {
                 const proj = queenProjectiles[i];
-
-                // Comprobar colisión entre proyectil y el cañón del jugador
-                const playerLeft = player.x;
-                const playerRight = player.x + player.width;
-                const playerTop = player.y - player.barrelHeight; // Incluye el cañón
-                const playerBottom = player.y + player.height;
-
-                const collisionWithPlayer = proj.x + proj.radius > playerLeft &&
-                                            proj.x - proj.radius < playerRight &&
-                                            proj.y + proj.radius > playerTop &&
-                                            proj.y - proj.radius < playerBottom;
-
-                if (collisionWithPlayer) {
+                if (proj.x + proj.radius > player.x && proj.x - proj.radius < player.x + player.width &&
+                    proj.y + proj.radius > player.y - player.barrelHeight && proj.y - proj.radius < player.y + player.height) {
                     player.health -= queenProjectileDamage;
                     updatePlayerHealthDisplay();
-                    queenProjectiles.splice(i, 1); // Eliminar proyectil
+                    queenProjectiles.splice(i, 1);
                     if (player.health <= 0) {
                         endGame('GAME_OVER');
                         return;
@@ -597,362 +503,196 @@
                 }
             }
         }
-
-        // Crea un nuevo insecto normal y lo añade al array
+        
         function spawnTarget() {
-            const x = Math.random() * (canvas.width - targetSize); // Posición X aleatoria
-            const speed = Math.random() * (targetSpeedMax - targetSpeedMin) + targetSpeedMin; // Velocidad aleatoria
-
+            const x = Math.random() * (canvas.width - targetSize);
+            const speed = Math.random() * (targetSpeedMax - targetSpeedMin) + targetSpeedMin;
             targets.push({
-                x: x,
-                y: -targetSize, // Aparece justo fuera de la parte superior del canvas
-                size: targetSize,
-                color: targetBodyColor,
-                speed: speed,
-                health: targetInitialHealth, // Vida del insecto
-                maxHealth: targetInitialHealth,
-                isQueen: false,
+                x: x, y: -targetSize, size: targetSize, color: targetBodyColor, speed: speed,
+                health: targetInitialHealth, maxHealth: targetInitialHealth, isQueen: false
             });
         }
 
-        // Crea y añade la Reina Insecto
         function spawnQueen() {
-            // No invocar reina si ya estamos en el último nivel o ya hay una reina
-            if (currentLevel > MAX_LEVEL || queen !== null) {
-                return;
-            }
-
-            gameState = 'BOSS_STAGE'; // Cambiar estado a fase de jefe
-            if (soundQueenSpawn) soundQueenSpawn.play(); // Sonido de aparición de reina
-            messageText.textContent = `¡REINA ${currentLevel} SE ACERCA!`;
-            startButton.textContent = '¡Enfréntala!';
-            gameMessage.style.display = 'flex';
-            
-            // Detener el disparo automático del jugador y aparición de bichos normales
+            if (currentLevel > MAX_LEVEL || queen !== null) return;
+            gameState = 'BOSS_STAGE_PAUSE';
             if (autoShootIntervalId) clearInterval(autoShootIntervalId);
             autoShootIntervalId = null;
 
-            // Limpiar insectos normales restantes para que solo quede la reina
-            targets.length = 0; // Eliminar todos los insectos normales restantes
-            queenProjectiles.length = 0; // Limpiar proyectiles anteriores de la reina
-
-            // Reiniciar el contador de bichos perdidos para el jefe
+            soundQueenSpawn.play().catch(e => console.log("Error playing queen spawn sound:", e));
+            messageText.innerHTML = `¡REINA ${currentLevel} SE ACERCA!`;
+            startButton.textContent = '¡Enfréntala!';
+            gameMessage.style.display = 'flex';
+            
+            targets.length = 0;
+            queenProjectiles.length = 0;
             missedTargets = 0;
-            missedDisplay.textContent = `${missedTargets} / ${MAX_MISSED_TARGETS_PER_LEVEL}`;
-
-            // Propiedades de la reina basadas en el nivel
-            const queenSize = targetSize * 2.5 + (currentLevel - 1) * 3; // Más grande con el nivel
-            const queenHealth = 50 + (currentLevel - 1) * 10; // Vida base de 50 + escala con nivel
-            const queenSpeed = 0.5 + (currentLevel - 1) * 0.05; // Más lenta, pero aumenta con nivel
-            const queenBaseFireRate = 1000; // Reina dispara cada segundo base
-            queenFireRate = Math.max(300, queenBaseFireRate - (currentLevel - 1) * 50); // Reina dispara más rápido en niveles altos
+            missedDisplay.textContent = `0 / ${MAX_MISSED_TARGETS_PER_LEVEL}`;
+            
+            const queenSize = targetSize * 2.5 + (currentLevel - 1) * 3;
+            const queenHealth = 50 + (currentLevel - 1) * 20;
+            const queenSpeed = 0.5 + (currentLevel - 1) * 0.05;
+            queenFireRate = Math.max(300, 1000 - (currentLevel - 1) * 50);
 
             queen = {
-                x: canvas.width / 2 - queenSize / 2,
-                y: -queenSize, // Aparece desde arriba
-                size: queenSize,
-                color: QUEEN_COLOR,
-                speed: Math.min(queenSpeed, 1.5), // Limitar velocidad máxima de la reina al bajar
-                health: queenHealth,
-                maxHealth: queenHealth,
-                isQueen: true,
+                x: canvas.width / 2 - queenSize / 2, y: -queenSize, size: queenSize, color: QUEEN_COLOR,
+                speed: Math.min(queenSpeed, 1.5), health: queenHealth, maxHealth: queenHealth, isQueen: true
             };
-            targets.push(queen); // Añadir la reina al array de objetivos
-
-            // Pausar brevemente para mostrar el mensaje
-            setTimeout(() => {
-                gameMessage.style.display = 'none';
-                // Reiniciar disparo automático del jugador
-                autoShootIntervalId = setInterval(shoot, playerFireRate);
-                requestAnimationFrame(gameLoop); // Reanudar el bucle principal (ahora solo con la reina)
-            }, 3000); // Pausa de 3 segundos
+            targets.push(queen);
         }
 
-        // La reina dispara un proyectil hacia el jugador
         function queenAttack() {
-            if (queen === null) return; // La reina debe existir para atacar
-
-            const projX = queen.x + queen.size / 2;
-            const projY = queen.y + queen.size; // Desde la parte inferior de la reina
-
+            if (!queen) return;
             queenProjectiles.push({
-                x: projX,
-                y: projY,
-                radius: queenProjectileRadius,
-                color: queenProjectileColor,
-                damage: queenProjectileDamage,
+                x: queen.x + queen.size / 2, y: queen.y + queen.size,
+                radius: queenProjectileRadius, color: queenProjectileColor
             });
         }
+        
+        function levelPassed() {
+            if (gameState === 'GAME_OVER') return;
+            soundLevelUp.play().catch(e => console.log("Error playing level up sound:", e));
+            currentLevel++;
 
-        // Función para disparar una o varias balas del jugador
-        function shoot() {
-            // Solo disparar si el juego está en modo PLAYING o BOSS_STAGE
-            if (gameState !== 'PLAYING' && gameState !== 'BOSS_STAGE') return;
-            
-            if (soundBullet) { // Reproducir sonido de disparo si existe
-                const bulletClone = soundBullet.cloneNode();
-                bulletClone.volume = soundBullet.volume;
-                bulletClone.play();
+            if (currentLevel > MAX_LEVEL) {
+                endGame('VICTORY');
+                return;
             }
 
-            // Calcular la posición inicial de la bala desde el cañón
-            const bulletY = player.y - player.barrelHeight / 2;
+            gameState = 'LEVEL_UP_PAUSE';
+            if (autoShootIntervalId) clearInterval(autoShootIntervalId);
+            autoShootIntervalId = null;
+            
+            // Mejoras de rifle cada 3 niveles
+            if (currentLevel % 3 === 0) {
+                 player.bulletsPerShot = Math.min(5, player.bulletsPerShot + 1); // Max 5 balas
+                 messageText.innerHTML = `¡NIVEL ${currentLevel} SUPERADO!<br>¡RIFLE MEJORADO!`;
+            } else {
+                 messageText.innerHTML = `¡NIVEL ${currentLevel} SUPERADO!`;
+            }
 
-            // Determinar el rango de desplazamiento para las balas
-            const totalSpreadWidth = (player.bulletsPerShot - 1) * player.bulletSpread;
-            const startOffsetX = -totalSpreadWidth / 2;
+            levelDisplay.textContent = currentLevel;
+            startButton.textContent = `Continuar Nivel ${currentLevel}`;
+            gameMessage.style.display = 'flex';
 
+            insectsDestroyedThisLevel = 0;
+            missedTargets = 0;
+            missedDisplay.textContent = `0 / ${MAX_MISSED_TARGETS_PER_LEVEL}`;
+            
+            targetSpeedMin += 0.1;
+            targetSpeedMax += 0.15;
+            targetInitialHealth = Math.ceil(currentLevel / 2);
+            targetSpawnInterval = Math.max(400, targetSpawnInterval - 50);
+        }
+
+        function endGame(reason) {
+            if (gameState === 'GAME_OVER') return; // Evita llamadas múltiples
+            gameState = 'GAME_OVER';
+
+            if (autoShootIntervalId) clearInterval(autoShootIntervalId);
+            autoShootIntervalId = null;
+
+            if (reason === 'VICTORY') {
+                messageText.innerHTML = `¡VICTORIA!<br>Puntuación Final: ${score}`;
+            } else {
+                soundGameOver.play().catch(e => console.log("Error playing game over sound:", e));
+                messageText.innerHTML = `GAME OVER<br>Puntuación: ${score}`;
+            }
+            startButton.textContent = 'Jugar de Nuevo';
+            gameMessage.style.display = 'flex';
+        }
+
+        function playerShoot() {
+            const startX = player.x + player.width / 2;
+            const totalWidth = (player.bulletsPerShot - 1) * player.bulletSpread;
+            const initialOffset = -totalWidth / 2;
             for (let i = 0; i < player.bulletsPerShot; i++) {
-                const bulletX = player.x + player.width / 2 + startOffsetX + (i * player.bulletSpread);
-                
                 bullets.push({
-                    x: bulletX,
-                    y: bulletY,
+                    x: startX + initialOffset + (i * player.bulletSpread),
+                    y: player.y - player.barrelHeight,
                     radius: bulletRadius,
                     color: bulletColor,
                 });
             }
+            const bulletClone = soundBullet.cloneNode();
+            bulletClone.volume = soundBullet.volume;
+            bulletClone.play().catch(e => console.log("Error playing bullet sound:", e));
         }
 
-        // --- Bucle Principal del Juego ---
-        let animationFrameId; // Para almacenar el ID del requestAnimationFrame
-
-        function gameLoop() {
-            // Este return detendrá gameLoop si gameState no es PLAYING o BOSS_STAGE
-            if (gameState !== 'PLAYING' && gameState !== 'BOSS_STAGE') {
-                cancelAnimationFrame(animationFrameId); // Detener el bucle de animación
-                return;
-            }
-
-            // Limpiar todo el canvas en cada fotograma
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-            // Actualizar el estado del juego
-            update();
-
-            // Dibujar todos los elementos del juego
-            drawPlayer(); // La arma siempre se dibuja aquí
-            bullets.forEach(drawBullet);
-            targets.forEach(drawTarget); // Dibuja tanto insectos como la reina
-            queenProjectiles.forEach(drawQueenProjectile); // Dibujar proyectiles de la reina
-
-            // Solicitar al navegador que llame a gameLoop de nuevo en el próximo fotograma
-            animationFrameId = requestAnimationFrame(gameLoop);
-        }
-
-        // --- Funciones de Control de Juego ---
-
-        // Configura la dificultad según el nivel actual
-        function setDifficultyForLevel(level) {
-            // Aumentar la velocidad base de los insectos
-            targetSpeedMin = 1.5 + (level - 1) * 0.2;
-            targetSpeedMax = 4 + (level - 1) * 0.3;
-
-            // Reducir el intervalo de aparición (más objetivos)
-            targetSpawnInterval = Math.max(200, 1200 - (level - 1) * 60);
-
-            // Aumentar la vida inicial de los insectos
-            targetInitialHealth = 1 + Math.floor((level - 1) / 3); // Cada 3 niveles, aumenta la vida en 1
-
-            // REDUCIR LA VELOCIDAD DE DISPARO DEL JUGADOR (aumentar playerFireRate)
-            playerFireRate = 200 + (level - 1) * 20; // Se vuelve más lento 20ms por nivel
-            playerFireRate = Math.min(1000, playerFireRate); // Limitar la lentitud máxima (1 segundo entre disparos)
-
-            // Mejoras de rifle cada 5 niveles
-            // Aseguramos que solo se active una vez por nivel de mejora
-            if (level > player.lastRifleLevelUp && level % 5 === 0 && level <= MAX_LEVEL) {
-                player.bulletsPerShot = Math.min(5, player.bulletsPerShot + 1); // Máximo 5 balas por disparo
-                player.lastRifleLevelUp = level; // Registra el nivel en que se dio la mejora
-                
-                messageText.textContent = `¡RIFLE MEJORADO! Disparas ${player.bulletsPerShot} balas.`;
-                startButton.textContent = 'Continuar';
-                gameMessage.style.display = 'flex';
-                gameState = 'LEVEL_UP_PAUSE';
-                
-                // Pausar disparo y bucle de juego para el mensaje
-                if (autoShootIntervalId) clearInterval(autoShootIntervalId);
-                autoShootIntervalId = null;
-                cancelAnimationFrame(animationFrameId);
-
-                setTimeout(() => {
-                    gameMessage.style.display = 'none';
-                    gameState = 'PLAYING';
-                    // Reiniciar disparo con la nueva playerFireRate
-                    autoShootIntervalId = setInterval(shoot, playerFireRate);
-                    // Resetear temporizadores de spawn para el inicio del nuevo nivel
-                    lastTargetSpawnTime = Date.now();
-                    requestAnimationFrame(gameLoop);
-                }, 2500); // Pausa para mensaje de mejora
-                return true; // Indica que hubo una mejora y una pausa
-            }
-
-            // Nivel 20: IMPOSIBLE
-            if (level === MAX_LEVEL) {
-                targetSpeedMin = 10; // Muy rápidos
-                targetSpeedMax = 15;
-                targetSpawnInterval = 50; // Demasiados objetivos
-                targetInitialHealth = 8; // Más resistentes
-                playerFireRate = 1200; // Arma muy lenta
-                queenFireRate = 200; // Reina dispara rapidísimo
-            }
-            return false; // No hubo mejora de rifle
-        }
-
-        // Se llama cuando se completa un nivel (después de derrotar a la reina o si escapa)
-        function levelPassed() {
-            if (soundLevelUp) soundLevelUp.play(); // Sonido de subida de nivel
-
-            currentLevel++;
-            insectsDestroyedThisLevel = 0; // Resetear para el nuevo nivel
-            missedTargets = 0; // Resetear perdidos
-            missedDisplay.textContent = `${missedTargets} / ${MAX_MISSED_TARGETS_PER_LEVEL}`;
-            levelDisplay.textContent = currentLevel;
-            queen = null; // Asegurarse de que la reina está eliminada para el próximo nivel
-            targets.length = 0; // Limpiar cualquier objetivo restante
-            queenProjectiles.length = 0; // Limpiar proyectiles de la reina
-
-            if (currentLevel > MAX_LEVEL) {
-                endGame('VICTORY'); // ¡Has ganado el juego!
-                return;
-            }
-
-            // Pausar juego para el mensaje de nivel completado o mejora de rifle
-            const rifleUpgraded = setDifficultyForLevel(currentLevel);
-
-            if (!rifleUpgraded) { // Si no hubo mejora de rifle, mostrar mensaje de nivel normal
-                messageText.textContent = `¡NIVEL ${currentLevel} INICIADO!`;
-                startButton.textContent = 'Continuar';
-                gameMessage.style.display = 'flex';
-                gameState = 'LEVEL_UP_PAUSE';
-                
-                if (autoShootIntervalId) clearInterval(autoShootIntervalId); // Pausar disparo
-                autoShootIntervalId = null;
-                cancelAnimationFrame(animationFrameId); // Pausar el bucle de animación
-
-                setTimeout(() => {
-                    gameMessage.style.display = 'none';
-                    gameState = 'PLAYING';
-                    // Reiniciar temporizadores de spawn para el inicio del nuevo nivel
-                    lastTargetSpawnTime = Date.now();
-                    // Reiniciar disparo automático con la nueva playerFireRate
-                    autoShootIntervalId = setInterval(shoot, playerFireRate);
-                    requestAnimationFrame(gameLoop); // Reanudar el bucle
-                }, 2000); // 2 segundos de pausa
-            }
-        }
-
-        // Inicializa o reinicia el juego
         function startGame() {
+            gameState = 'PLAYING';
             score = 0;
-            missedTargets = 0;
             currentLevel = 1;
             insectsDestroyedThisLevel = 0;
-            player.health = player.maxHealth; // Restablecer vida del jugador
-            player.bulletsPerShot = 1; // Resetear rifle
-            player.lastRifleLevelUp = 0;
-            queen = null; // Asegurarse de que no haya una reina flotando
-
-            bullets.length = 0; // Vaciar array de balas del jugador
-            targets.length = 0; // Vaciar array de objetivos
-            queenProjectiles.length = 0; // Vaciar array de proyectiles de la reina
-
-            scoreDisplay.textContent = score;
-            missedDisplay.textContent = `${missedTargets} / ${MAX_MISSED_TARGETS_PER_LEVEL}`;
-            levelDisplay.textContent = currentLevel;
-            updatePlayerHealthDisplay(); // Actualizar barra de vida al inicio
-
-            gameMessage.style.display = 'none'; // Ocultar el mensaje de inicio/fin
-            gameState = 'PLAYING'; // Establecer el estado del juego a corriendo
-            lastTargetSpawnTime = Date.now(); // Resetear el tiempo de generación de objetivos
-
-            setDifficultyForLevel(currentLevel); // Configurar dificultad para el nivel 1
-
-            // Iniciar el disparo automático del jugador
-            if (autoShootIntervalId) clearInterval(autoShootIntervalId); // Limpiar por si acaso
-            autoShootIntervalId = setInterval(shoot, playerFireRate);
-
-            requestAnimationFrame(gameLoop); // Iniciar el bucle del juego (usando requestAnimationFrame)
-        }
-
-        // Finaliza el juego
-        function endGame(status) {
-            gameState = status; // Establecer el estado final: 'GAME_OVER' o 'VICTORY'
-            if (autoShootIntervalId) clearInterval(autoShootIntervalId); // Detener disparo automático
-            autoShootIntervalId = null;
-            cancelAnimationFrame(animationFrameId); // Detener el bucle de animación
-
-            // Limpiar todos los objetos del juego
-            bullets.length = 0;
+            missedTargets = 0;
+            player.health = player.maxHealth;
+            player.bulletsPerShot = 1;
             targets.length = 0;
+            bullets.length = 0;
             queenProjectiles.length = 0;
             queen = null;
+            targetSpeedMin = 1.5;
+            targetSpeedMax = 4;
+            targetInitialHealth = 1;
+            targetSpawnInterval = 1200;
 
-            if (status === 'VICTORY') {
-                messageText.textContent = `¡HAS GANADO! Completaste todos los niveles. Puntuación Final: ${score}`;
-            } else { // GAME_OVER
-                if (soundGameOver) soundGameOver.play(); // Sonido de game over
-                messageText.textContent = `¡GAME OVER! Puntuación Final: ${score} (Nivel ${currentLevel})`;
-            }
-            startButton.textContent = 'Jugar de Nuevo';
-            gameMessage.style.display = 'flex'; // Mostrar el mensaje de Game Over
+            scoreDisplay.textContent = score;
+            levelDisplay.textContent = currentLevel;
+            missedDisplay.textContent = `0 / ${MAX_MISSED_TARGETS_PER_LEVEL}`;
+            updatePlayerHealthDisplay();
+
+            gameMessage.style.display = 'none';
+
+            if (autoShootIntervalId) clearInterval(autoShootIntervalId);
+            autoShootIntervalId = setInterval(playerShoot, playerFireRate);
         }
 
-        // --- Eventos ---
+        // --- Bucle Principal y Eventos ---
 
-        // Evento de movimiento del ratón para mover el cañón (para PC)
-        canvas.addEventListener('mousemove', (event) => {
-            if (gameState === 'PLAYING' || gameState === 'BOSS_STAGE') {
-                const mouseX = event.clientX - canvas.getBoundingClientRect().left;
-                // Simplemente centrar el cañón bajo el ratón. La limitación ya se hace en drawPlayer.
-                player.x = mouseX - player.width / 2;
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            drawPlayer();
+            bullets.forEach(drawBullet);
+            targets.forEach(drawTarget);
+            queenProjectiles.forEach(drawQueenProjectile);
+        }
+
+        function gameLoop() {
+            if (gameState === 'PLAYING' || gameState === 'BOSS_FIGHT') {
+                update();
+            }
+            draw();
+            requestAnimationFrame(gameLoop);
+        }
+
+        canvas.addEventListener('mousemove', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            player.x = e.clientX - rect.left - player.width / 2;
+        });
+
+        startButton.addEventListener('click', () => {
+            if (gameState === 'IDLE' || gameState === 'GAME_OVER' || gameState === 'VICTORY') {
+                startGame();
+            } else if (gameState === 'LEVEL_UP_PAUSE') {
+                gameState = 'PLAYING';
+                gameMessage.style.display = 'none';
+                if (autoShootIntervalId) clearInterval(autoShootIntervalId);
+                autoShootIntervalId = setInterval(playerShoot, playerFireRate);
+            } else if (gameState === 'BOSS_STAGE_PAUSE') {
+                gameState = 'BOSS_FIGHT';
+                gameMessage.style.display = 'none';
+                lastQueenShotTime = Date.now();
+                if (autoShootIntervalId) clearInterval(autoShootIntervalId);
+                autoShootIntervalId = setInterval(playerShoot, playerFireRate);
             }
         });
 
-        // --- Eventos Táctiles para Android/Móviles ---
-        let touchStartPlayerX = 0; // Posición X del jugador al inicio del toque
-        let touchStartClientX = 0; // Posición X del toque en la pantalla
+        // --- Iniciar Juego ---
+        messageText.innerHTML = 'La Invasión de los Bichos';
+        startButton.textContent = 'Jugar';
+        gameMessage.style.display = 'flex';
+        requestAnimationFrame(gameLoop);
 
-        canvas.addEventListener('touchstart', (event) => {
-            // Prevenir el scroll/zoom por defecto. Esto es crucial para la jugabilidad móvil.
-            if (gameState === 'PLAYING' || gameState === 'BOSS_STAGE') {
-                event.preventDefault(); 
-                touchStartClientX = event.touches[0].clientX;
-                touchStartPlayerX = player.x; // Guardar la posición inicial del cañón
-            }
-        }, { passive: false });
-
-        canvas.addEventListener('touchmove', (event) => {
-            if ((gameState === 'PLAYING' || gameState === 'BOSS_STAGE') && event.touches.length > 0) {
-                event.preventDefault(); // Prevenir el scroll/zoom por defecto
-
-                const touchCurrentClientX = event.touches[0].clientX;
-                
-                // Calcular el desplazamiento relativo desde el inicio del toque
-                const deltaX = touchCurrentClientX - touchStartClientX;
-                
-                // Mover el cañón en relación a su posición inicial. La limitación se hace en drawPlayer.
-                player.x = touchStartPlayerX + deltaX;
-            }
-        }, { passive: false });
-        
-        // Evento para el botón de inicio/reinicio
-        startButton.addEventListener('click', startGame);
-
-        // Iniciar con un mensaje de bienvenida
-        window.onload = function() {
-            messageText.textContent = 'Haz clic en Jugar para comenzar';
-            startButton.textContent = 'Jugar';
-            gameMessage.style.display = 'flex'; // Mostrar el mensaje de inicio
-            updatePlayerHealthDisplay(); // Asegurar que la barra de vida se dibuje al cargar
-            // Precargar sonidos
-            soundBullet.load();
-            soundHit.load();
-            soundExplosion.load();
-            soundLevelUp.load();
-            soundQueenSpawn.load();
-            soundGameOver.load();
-        };
     </script>
 </body>
 </html>
-```
