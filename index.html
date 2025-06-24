@@ -167,7 +167,7 @@
             width: 70,
             height: 25,
             color: '#00bcd4', // Cian para el cañón
-            x: canvas.width / 2 - 35, // Centrado horizontalmente
+            x: canvas.width / 2 - 35, // Centrado horizontalmente (posición inicial)
             y: canvas.height - 50,    // Posición desde la parte inferior
             barrelHeight: 40,         // Altura del cañón
             barrelWidth: 15,          // Ancho del cañón
@@ -386,6 +386,18 @@
 
         // Evento para el botón de inicio/reinicio
         startButton.addEventListener('click', startGame);
+
+        // *** CAMBIO CLAVE: Evento para mover el cañón con el ratón ***
+        canvas.addEventListener('mousemove', (event) => {
+            if (gameRunning) {
+                // Obtener la posición X del ratón relativa al canvas
+                const mouseX = event.clientX - canvas.getBoundingClientRect().left;
+
+                // Actualizar la posición X del jugador
+                // Se asegura de que el cañón no se salga de los límites del canvas
+                player.x = Math.max(0, Math.min(mouseX - player.width / 2, canvas.width - player.width));
+            }
+        });
 
         // Iniciar con un mensaje de bienvenida
         window.onload = function() {
