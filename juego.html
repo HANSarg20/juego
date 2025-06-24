@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Juego de Disparos</title>
+    <style>
+        /* Estilos CSS para el cuerpo de la página y el contenedor del juego */
+        body {
+            margin: 0;
+            overflow: hidden; /* Evita barras de desplazamiento */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background-color: #1a1a2e; /* Fondo oscuro y agradable */
+            font-family: 'Press Start 2P', cursive; /* Fuente pixelada para un toque retro */
+            color: #eee;
+            /* Importar la fuente de Google Fonts si se usa fuera de un entorno Canvas */
+            /* @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap'); */
+        }
+
+        /* Contenedor principal del juego */
+        #game-container {
+            position: relative;
+            width: 800px; /* Ancho fijo del área de juego */
+            height: 600px; /* Alto fijo del área de juego */
+            background-color: #2a004a; /* Fondo más oscuro para el área de juego */
+            border: 5px solid #6a008a; /* Borde morado */
+            box-shadow: 0 0 25px rgba(106, 0, 138, 0.8); /* Sombra brillante */
+            border-radius: 12px;
+            overflow: hidden; /* Asegura que los elementos se mantengan dentro */
+            cursor: crosshair; /* Cursor de puntería para el juego */
+            display: flex; /* Para centrar el mensaje de inicio/fin */
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            text-align: center;
+        }
+
+        /* Estilo para el canvas donde se dibuja el juego */
+        canvas {
+            display: block;
+            position: absolute; /* Permite que el mensaje de inicio/fin se superponga */
+            top: 0;
+            left: 0;
+            z-index: 1; /* Asegura que el canvas esté debajo del mensaje */
+        }
+
+        /* Estilo para la visualización de la puntuación */
+        #score-display {
+            position: absolute;
+            top: 15px;
+            left: 15px;
+            font-size: 1.8em;
+            font-weight: bold;
+            color: #ffeb3b; /* Amarillo brillante */
+            background-color: rgba(0, 0, 0, 0.6);
+            padding: 10px 20px;
+            border-radius: 8px;
+            z-index: 10; /* Siempre visible encima de todo */
+            border: 2px solid #ffc107;
+        }
+
+        /* Estilo para el contador de objetivos perdidos */
+        #missed-display {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            font-size: 1.8em;
+            font-weight: bold;
+            color: #ff5252; /* Rojo vibrante */
+            background-color: rgba(0, 0, 0, 0.6);
+            padding: 10px 20px;
+            border-radius: 8px;
+            z-index: 10;
+            border: 2px solid #dc3545;
+        }
+
+        /* Estilo para los mensajes de inicio/fin del juego */
+        #game-message {
+            position: absolute;
+            z-index: 20; /* Siempre encima del canvas y los displays */
+            background-color: rgba(0, 0, 0, 0.85);
+            padding: 40px 60px;
+            border-radius: 15px;
+            border: 4px solid #00f2fe; /* Borde cian */
+            box-shadow: 0 0 30px rgba(0, 242, 254, 0.7);
+            color: #00f2fe;
+            font-size: 2.5em;
+            font-weight: bold;
+            display: none; /* Oculto por defecto */
+            animation: pulse 1.5s infinite alternate; /* Animación de pulsación */
+        }
+
+        #game-message p {
+            margin-bottom: 20px;
+        }
+
+        #game-message button {
+            background-color: #28a745; /* Botón verde */
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            font-size: 1.2em;
+            font-weight: bold;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.3s ease, transform 0.1s ease;
+            box-shadow: 0 5px 10px rgba(0, 0, 0, 0.4);
+        }
+
+        #game-message button:hover {
+            background-color: #218838;
+            transform: translateY(-2px);
+        }
+
+        #game-message button:active {
+            transform: translateY(0);
+        }
+
+        /* Animación de pulsación para el mensaje */
+        @keyframes pulse {
+            from {
+                transform: scale(1);
+                opacity: 1;
+            }
+            to {
+                transform: scale(1.05);
+                opacity: 0.9;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <canvas id="gameCanvas" width="800" height="600"></canvas>
+        <div id="score-display">Puntuación: <span id="score">0</span></div>
+        <div id="missed-display">Perdidos: <span id="missed">0</span> / 5</div>
+
+        <!-- Mensaje de inicio/fin del juego -->
+        <div id="game-message">
+            <p id="message-text">Haz clic en Jugar para comenzar</p>
+            <button id="start-button">Jugar</button>
+        </div>
+    </div>
+
+    <script>
+        // Obtener el canvas y su contexto 2D
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        // Obtener elementos HTML para mostrar información y mensajes
+        const scoreDisplay = document.getElementById('score');
+        const missedDisplay = document.getElementById('missed');
+        const gameMessage = document.getElementById('game-message');
+        const messageText = document.getElementById('message-text');
+        const startButton = document.getElementById('start-button');
+
+        // --- Variables del Juego ---
+        let score = 0;
+        let missedTargets = 0;
+        const MAX_MISSED_TARGETS = 5;
+        let gameRunning = false; // Estado del juego (true: jugando, false: parado)
+
+        // Propiedades del jugador (cañón)
+        const player = {
+            width: 70,
+            height: 25,
+            color: '#00bcd4', // Cian para el cañón
+            x: canvas.width / 2 - 35, // Centrado horizontalmente
+            y: canvas.height - 50,    // Posición desde la parte inferior
+            barrelHeight: 40,         // Altura del cañón
+            barrelWidth: 15,          // Ancho del cañón
+        };
+
+        // Arrays para balas y objetivos
+        const bullets = [];
+        const bulletSpeed = 9;
+        const bulletRadius = 7;
+        const bulletColor = '#ffea00'; // Amarillo neón para las balas
+
+        const targets = [];
+        const targetSize = 35;
+        const targetColor = '#e91e63'; // Rosa brillante para los objetivos
+        const targetSpeedMin = 1.5;
+        const targetSpeedMax = 4;
+        let targetSpawnInterval = 1200; // Un objetivo cada 1.2 segundos (ms)
+        let lastTargetSpawnTime = 0;
+
+        let lastShotTime = 0;
+        const fireRate = 200; // Milisegundos entre disparos (200ms = 5 disparos por segundo)
+
+        // --- Funciones de Dibujo ---
+
+        // Dibuja el jugador (cañón) en el canvas
+        function drawPlayer() {
+            // Cuerpo principal del cañón
+            ctx.fillStyle = player.color;
+            ctx.fillRect(player.x, player.y, player.width, player.height);
+
+            // Cañón (parte superior del cañón)
+            ctx.fillRect(player.x + player.width / 2 - player.barrelWidth / 2,
+                         player.y - player.barrelHeight,
+                         player.barrelWidth,
+                         player.barrelHeight);
+
+            // Base redondeada del cañón para un mejor aspecto
+            ctx.beginPath();
+            ctx.arc(player.x + player.width / 2, player.y + player.height, player.width / 2, 0, Math.PI, true);
+            ctx.fill();
+            ctx.closePath();
+        }
+
+        // Dibuja una bala
+        function drawBullet(bullet) {
+            ctx.beginPath();
+            ctx.arc(bullet.x, bullet.y, bullet.radius, 0, Math.PI * 2);
+            ctx.fillStyle = bullet.color;
+            ctx.shadowColor = bullet.color;
+            ctx.shadowBlur = 15; // Efecto de resplandor para las balas
+            ctx.fill();
+            ctx.closePath();
+            ctx.shadowBlur = 0; // Resetear el resplandor para otros dibujos
+        }
+
+        // Dibuja un objetivo
+        function drawTarget(target) {
+            ctx.fillStyle = target.color;
+            // Dibujar un cuadrado o una forma más interesante para el objetivo
+            ctx.fillRect(target.x, target.y, target.size, target.size);
+            // Opcional: para un objetivo más alienígena/burbuja
+            /*
+            ctx.beginPath();
+            ctx.arc(target.x + target.size / 2, target.y + target.size / 2, target.size / 2, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.closePath();
+            */
+        }
+
+        // --- Lógica del Juego ---
+
+        // Actualiza el estado de todos los elementos del juego (movimiento, colisiones, etc.)
+        function update() {
+            // Actualizar balas: moverlas hacia arriba
+            for (let i = bullets.length - 1; i >= 0; i--) {
+                bullets[i].y -= bulletSpeed;
+                // Eliminar balas que salen de la pantalla
+                if (bullets[i].y + bullets[i].radius < 0) {
+                    bullets.splice(i, 1);
+                }
+            }
+
+            // Actualizar objetivos: moverlos hacia abajo
+            for (let i = targets.length - 1; i >= 0; i--) {
+                targets[i].y += targets[i].speed;
+                // Si un objetivo sale por la parte inferior, se registra como "perdido"
+                if (targets[i].y - targets[i].size > canvas.height) {
+                    targets.splice(i, 1); // Eliminar objetivo
+                    missedTargets++;     // Incrementar contador de perdidos
+                    missedDisplay.textContent = `${missedTargets} / ${MAX_MISSED_TARGETS}`;
+                    // Comprobar condición de Game Over
+                    if (missedTargets >= MAX_MISSED_TARGETS) {
+                        endGame();
+                        return; // Detener la actualización si el juego termina
+                    }
+                }
+            }
+
+            // Generar nuevos objetivos
+            const currentTime = Date.now();
+            if (currentTime - lastTargetSpawnTime > targetSpawnInterval) {
+                spawnTarget();
+                lastTargetSpawnTime = currentTime;
+                // Opcional: Aumentar la dificultad gradualmente
+                // targetSpawnInterval = Math.max(300, targetSpawnInterval * 0.98); // Reduce el intervalo
+            }
+
+            // Detección de colisiones (bala vs objetivo)
+            for (let i = bullets.length - 1; i >= 0; i--) {
+                for (let j = targets.length - 1; j >= 0; j--) {
+                    const bullet = bullets[i];
+                    const target = targets[j];
+
+                    // Comprobación de colisión simple (distancia entre centros)
+                    const distSq = (bullet.x - (target.x + target.size / 2)) ** 2 + (bullet.y - (target.y + target.size / 2)) ** 2;
+                    const radiusSumSq = (bullet.radius + target.size / 2) ** 2;
+
+                    if (distSq < radiusSumSq) {
+                        // Colisión detectada
+                        score += 10; // Incrementar puntuación
+                        scoreDisplay.textContent = score;
+                        bullets.splice(i, 1); // Eliminar bala
+                        targets.splice(j, 1); // Eliminar objetivo
+                        break; // Salir del bucle interno, la bala ya fue destruida
+                    }
+                }
+            }
+        }
+
+        // Crea un nuevo objetivo y lo añade al array
+        function spawnTarget() {
+            const x = Math.random() * (canvas.width - targetSize); // Posición X aleatoria
+            const speed = Math.random() * (targetSpeedMax - targetSpeedMin) + targetSpeedMin; // Velocidad aleatoria
+            targets.push({
+                x: x,
+                y: -targetSize, // Aparece justo fuera de la parte superior del canvas
+                size: targetSize,
+                color: targetColor,
+                speed: speed,
+            });
+        }
+
+        // Función para disparar una bala
+        function shoot() {
+            const currentTime = Date.now();
+            if (currentTime - lastShotTime > fireRate) { // Respetar la tasa de disparo
+                // Calcular la posición inicial de la bala desde el cañón
+                const bulletX = player.x + player.width / 2;
+                const bulletY = player.y - player.barrelHeight / 2;
+
+                bullets.push({
+                    x: bulletX,
+                    y: bulletY,
+                    radius: bulletRadius,
+                    color: bulletColor,
+                });
+                lastShotTime = currentTime; // Actualizar el tiempo del último disparo
+            }
+        }
+
+        // --- Bucle Principal del Juego ---
+        function gameLoop() {
+            if (!gameRunning) {
+                // Si el juego no está corriendo, no actualizamos ni dibujamos, solo esperamos
+                return;
+            }
+
+            // Limpiar todo el canvas en cada fotograma
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Actualizar el estado del juego
+            update();
+
+            // Dibujar todos los elementos del juego
+            drawPlayer();
+            bullets.forEach(drawBullet);
+            targets.forEach(drawTarget);
+
+            // Solicitar al navegador que llame a gameLoop de nuevo en el próximo fotograma
+            requestAnimationFrame(gameLoop);
+        }
+
+        // --- Funciones de Control de Juego ---
+
+        // Inicializa o reinicia el juego
+        function startGame() {
+            score = 0;
+            missedTargets = 0;
+            bullets.length = 0; // Vaciar array de balas
+            targets.length = 0; // Vaciar array de objetivos
+            scoreDisplay.textContent = score;
+            missedDisplay.textContent = `${missedTargets} / ${MAX_MISSED_TARGETS}`;
+
+            gameMessage.style.display = 'none'; // Ocultar el mensaje de inicio/fin
+            gameRunning = true; // Establecer el estado del juego a corriendo
+            lastTargetSpawnTime = Date.now(); // Resetear el tiempo de generación de objetivos
+            gameLoop(); // Iniciar el bucle del juego
+        }
+
+        // Finaliza el juego
+        function endGame() {
+            gameRunning = false; // Detener el juego
+            messageText.textContent = `¡GAME OVER! Puntuación Final: ${score}`;
+            startButton.textContent = 'Jugar de Nuevo';
+            gameMessage.style.display = 'flex'; // Mostrar el mensaje de Game Over
+        }
+
+        // --- Eventos ---
+
+        // Evento de clic en el canvas para disparar
+        canvas.addEventListener('click', () => {
+            if (gameRunning) {
+                shoot();
+            }
+        });
+
+        // Evento para el botón de inicio/reinicio
+        startButton.addEventListener('click', startGame);
+
+        // Iniciar con un mensaje de bienvenida
+        window.onload = function() {
+            messageText.textContent = 'Haz clic en Jugar para comenzar';
+            startButton.textContent = 'Jugar';
+            gameMessage.style.display = 'flex'; // Mostrar el mensaje de inicio
+        };
+    </script>
+</body>
+</html>
+```
