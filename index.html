@@ -2,108 +2,97 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>Juego de Disparos: La Invasión de los Bichos</title>
     <style>
-        /* Estilos CSS para el cuerpo de la página y el contenedor del juego */
         body {
             margin: 0;
-            overflow: hidden; /* Evita barras de desplazamiento */
+            overflow: hidden;
             display: flex;
             justify-content: center;
             align-items: center;
             min-height: 100vh;
-            background-color: #1a1a2e; /* Fondo oscuro y agradable */
-            font-family: 'Press Start 2P', cursive; /* Fuente pixelada para un toque retro */
+            background-color: #1a1a2e;
+            font-family: 'Press Start 2P', cursive;
             color: #eee;
-            /* Importar la fuente de Google Fonts si se usa fuera de un entorno Canvas */
-            /* @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap'); */
         }
 
-        /* Contenedor principal del juego */
         #game-container {
             position: relative;
-            width: 800px; /* Ancho fijo del área de juego */
-            height: 600px; /* Alto fijo del área de juego */
-            background-color: #2a004a; /* Fondo más oscuro para el área de juego */
-            border: 5px solid #6a008a; /* Borde morado */
-            box-shadow: 0 0 25px rgba(106, 0, 138, 0.8); /* Sombra brillante */
+            width: 800px;
+            height: 600px;
+            background-image: url('https://www.publicdomainpictures.net/pictures/320000/velka/deep-space-galaxy.jpg');
+            background-size: cover;
+            background-position: center;
+            border: 5px solid #6a008a;
+            box-shadow: 0 0 25px rgba(106, 0, 138, 0.8);
             border-radius: 12px;
-            overflow: hidden; /* Asegura que los elementos se mantengan dentro */
-            cursor: crosshair; /* Cursor de puntería para el juego en PC */
-            display: flex; /* Para centrar el mensaje de inicio/fin */
-            justify-content: center;
-            align-items: center;
-            flex-direction: column;
-            text-align: center;
+            overflow: hidden;
+            cursor: crosshair;
         }
 
-        /* Estilo para el canvas donde se dibuja el juego */
         canvas {
             display: block;
-            position: absolute; /* Permite que el mensaje de inicio/fin se superponga */
+            position: absolute;
             top: 0;
             left: 0;
-            z-index: 1; /* Asegura que el canvas esté debajo del mensaje */
+            z-index: 1;
         }
 
-        /* Contenedores de información superior (puntuación, nivel, perdidos) */
         .info-display-container {
             position: absolute;
             top: 15px;
-            width: calc(100% - 30px); /* Ocupa casi todo el ancho con padding */
+            width: calc(100% - 30px);
             display: flex;
             justify-content: space-between;
             align-items: center;
             z-index: 10;
         }
 
-        /* Estilo para las cajas de información */
         .info-box {
-            font-size: 1.5em; /* Ligeramente más pequeño para hacer espacio */
+            font-size: 1.5em;
             font-weight: bold;
-            color: #ffeb3b; /* Amarillo brillante */
+            color: #ffeb3b;
             background-color: rgba(0, 0, 0, 0.6);
             padding: 8px 15px;
             border-radius: 8px;
             border: 2px solid #ffc107;
-            white-space: nowrap; /* Evita que el texto se rompa */
-            box-shadow: 0 0 10px rgba(255, 235, 59, 0.3); /* Resplandor amarillo */
+            white-space: nowrap;
+            box-shadow: 0 0 10px rgba(255, 235, 59, 0.3);
         }
 
         #missed-display {
-            color: #ff5252; /* Rojo para perdidos */
+            color: #ff5252;
             border-color: #dc3545;
-            box-shadow: 0 0 10px rgba(255, 82, 82, 0.3); /* Resplandor rojo */
+            box-shadow: 0 0 10px rgba(255, 82, 82, 0.3);
         }
         
         #level-display {
-            color: #00f2fe; /* Cian para el nivel */
+            color: #00f2fe;
             border-color: #00bcd4;
-            box-shadow: 0 0 10px rgba(0, 242, 254, 0.3); /* Resplandor cian */
+            box-shadow: 0 0 10px rgba(0, 242, 254, 0.3);
         }
 
-        /* Estilo para la barra de vida del jugador */
         #player-health-bar-container {
             position: absolute;
-            bottom: 15px; /* Posición en la parte inferior */
+            bottom: 15px;
             left: 50%;
             transform: translateX(-50%);
-            width: 250px; /* Ancho de la barra (un poco más grande) */
-            height: 30px; /* Alto de la barra */
+            width: 250px;
+            height: 30px;
             background-color: rgba(0, 0, 0, 0.6);
             border: 2px solid #00bcd4;
             border-radius: 8px;
             overflow: hidden;
             z-index: 10;
-            box-shadow: 0 0 15px rgba(0, 188, 212, 0.5); /* Resplandor para la barra de vida */
+            box-shadow: 0 0 15px rgba(0, 188, 212, 0.5);
         }
 
         #player-health-bar-fill {
             height: 100%;
-            background-color: #28a745; /* Verde para la vida */
-            width: 100%; /* Se ajustará con JS */
-            transition: width 0.3s ease-out, background-color 0.3s ease-out; /* Transición suave al cambiar de vida y color */
+            background-color: #28a745;
+            width: 100%;
+            transition: width 0.3s ease-out, background-color 0.3s ease-out;
         }
 
         #player-health-text {
@@ -112,69 +101,83 @@
             left: 50%;
             transform: translate(-50%, -50%);
             color: white;
-            font-size: 1em; /* Un poco más grande */
+            font-size: 1em;
             font-weight: bold;
             text-shadow: 1px 1px 3px rgba(0,0,0,0.9);
         }
 
-        /* Estilo para los mensajes de inicio/fin del juego */
         #game-message {
             position: absolute;
-            z-index: 20; /* Siempre encima del canvas y los displays */
-            background-color: rgba(0, 0, 0, 0.9); /* Más opaco */
+            z-index: 20;
+            background-color: rgba(0, 0, 0, 0.9);
             padding: 40px 60px;
-            border-radius: 20px; /* Más redondeado */
-            border: 5px solid #00f2fe; /* Borde cian más grueso */
-            box-shadow: 0 0 40px rgba(0, 242, 254, 0.9); /* Sombra más intensa */
+            border-radius: 20px;
+            border: 5px solid #00f2fe;
+            box-shadow: 0 0 40px rgba(0, 242, 254, 0.9);
             color: #00f2fe;
-            font-size: 2.5em; /* Más grande */
+            font-size: 2.5em;
             font-weight: bold;
-            display: none; /* Oculto por defecto */
-            animation: pulse 1.5s infinite alternate; /* Animación de pulsación */
-            max-width: 90%; /* Para pantallas pequeñas */
+            display: none;
+            animation: pulse 1.5s infinite alternate;
+            max-width: 90%;
+            text-align: center;
         }
 
         #game-message p {
-            margin-bottom: 25px; /* Más espacio */
+            margin-bottom: 25px;
             line-height: 1.3;
         }
 
-        #game-message button {
-            background-color: #28a745; /* Botón verde */
+        #game-message button, #power-up-button {
+            background-color: #28a745;
             color: white;
             border: none;
-            padding: 18px 35px; /* Más grande */
-            font-size: 1.4em; /* Más grande */
+            padding: 18px 35px;
+            font-size: 1.4em;
             font-weight: bold;
-            border-radius: 10px; /* Más redondeado */
+            border-radius: 10px;
             cursor: pointer;
             transition: background-color 0.3s ease, transform 0.1s ease, box-shadow 0.3s ease;
-            box-shadow: 0 8px 15px rgba(0, 0, 0, 0.6); /* Sombra más pronunciada */
+            box-shadow: 0 8px 15px rgba(0, 0, 0, 0.6);
+            font-family: 'Press Start 2P', cursive;
         }
 
-        #game-message button:hover {
+        #game-message button:hover, #power-up-button:hover {
             background-color: #218838;
-            transform: translateY(-3px); /* Desplazamiento más pronunciado */
+            transform: translateY(-3px);
             box-shadow: 0 12px 20px rgba(0, 0, 0, 0.8);
         }
 
-        #game-message button:active {
+        #game-message button:active, #power-up-button:active {
             transform: translateY(0);
             box-shadow: 0 5px 10px rgba(0, 0, 0, 0.4);
         }
 
-        /* Animación de pulsación para el mensaje */
+        #power-up-button {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            z-index: 15;
+            font-size: 1em;
+            padding: 15px 20px;
+            background-color: #9b59b6;
+            display: none;
+        }
+        
+        #power-up-button:hover {
+            background-color: #8e44ad;
+        }
+        
+        #power-up-button:disabled {
+            background-color: #555;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: 0 5px 10px rgba(0, 0, 0, 0.4);
+        }
+
         @keyframes pulse {
-            from {
-                transform: scale(1);
-                opacity: 1;
-                border-color: #00f2fe;
-            }
-            to {
-                transform: scale(1.05);
-                opacity: 0.9;
-                border-color: #00bcd4; /* Ligero cambio de color en el borde */
-            }
+            from { transform: scale(1); opacity: 1; border-color: #00f2fe; }
+            to { transform: scale(1.05); opacity: 0.9; border-color: #00bcd4; }
         }
     </style>
 </head>
@@ -185,7 +188,7 @@
         <div class="info-display-container">
             <div id="score-display" class="info-box">Puntuación: <span id="score">0</span></div>
             <div id="level-display" class="info-box">Nivel: <span id="level">1</span></div>
-            <div id="missed-display" class="info-box">Perdidos: <span id="missed">0</span> / 5</div>
+            <div id="missed-display" class="info-box">Perdidos: <span id="missed">0</span></div>
         </div>
 
         <div id="player-health-bar-container">
@@ -197,13 +200,13 @@
             <p id="message-text">Haz clic en Jugar para comenzar</p>
             <button id="start-button">Jugar</button>
         </div>
+        
+        <button id="power-up-button" disabled>Poder (0)</button>
     </div>
 
     <script>
-        // Obtener el canvas y su contexto 2D
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
-        // Obtener elementos HTML para mostrar información y mensajes
         const scoreDisplay = document.getElementById('score');
         const missedDisplay = document.getElementById('missed');
         const levelDisplay = document.getElementById('level');
@@ -212,107 +215,117 @@
         const gameMessage = document.getElementById('game-message');
         const messageText = document.getElementById('message-text');
         const startButton = document.getElementById('start-button');
+        const powerUpButton = document.getElementById('power-up-button');
 
-        // --- Variables del Juego ---
         let score = 0;
         let missedTargets = 0;
-        const MAX_MISSED_TARGETS_PER_LEVEL = 5; // Máximos objetivos perdidos antes de bajar vida del jugador
-        let gameState = 'IDLE'; // Estados: 'IDLE', 'PLAYING', 'BOSS_STAGE_PAUSE', 'BOSS_FIGHT', 'LEVEL_UP_PAUSE', 'GAME_OVER', 'VICTORY'
+        let gameState = 'IDLE';
         
         let currentLevel = 1;
         const MAX_LEVEL = 20;
-        const INSECTS_TO_LEVEL_UP = 30; // Cantidad de insectos normales a destruir para que aparezca la reina y subir de nivel
-        let insectsDestroyedThisLevel = 0; // Contar insectos destruidos para invocar a la reina
 
-        // Propiedades del jugador (cañón)
+        const TOTAL_BUGS_IN_WAVE = 50;
+        const BUGS_TO_PASS_LEVEL = 20;
+        let insectsDestroyedThisLevel = 0;
+        let bugsSpawnedThisWave = 0;
+        let bugsLeftTheScreen = 0;
+
         const player = {
-            width: 70,
-            height: 25,
-            color: '#00bcd4', // Cian para el cañón
-            x: canvas.width / 2 - 35, // Centrado horizontalmente (posición inicial)
-            y: canvas.height - 50,    // Posición desde la parte inferior
-            barrelHeight: 40,         // Altura del cañón
-            barrelWidth: 15,          // Ancho del cañón
-            health: 100,              // Vida del cañón
-            maxHealth: 100,
-            bulletsPerShot: 1,        // Cuántas balas dispara por ráfaga
-            bulletSpread: 15,         // Espaciado entre balas si hay más de una (ajustado para que se vean)
+            width: 80, height: 60, x: canvas.width / 2 - 40, y: canvas.height - 70,
+            health: 100, maxHealth: 100, bulletsPerShot: 1, bulletSpread: 15,
         };
 
-        // Arrays para balas y objetivos
-        const bullets = []; // Balas del jugador
+        const bullets = [];
         const bulletSpeed = 9;
         const bulletRadius = 7;
-        const bulletColor = '#ffea00'; // Amarillo neón para las balas
-        const bulletDamage = 1;       // Daño que hace cada bala
+        const bulletColor = '#ffea00';
+        const bulletDamage = 1;
 
-        const targets = []; // Almacenará insectos normales y la reina
-        let targetSize = 35; // Tamaño base del insecto normal
-        const targetBodyColor = '#e91e63'; // Rosa brillante para el cuerpo
-        const targetEyeColor = '#ffffff'; // Blanco para los ojos
-        const targetLimbColor = '#c2185b'; // Rosa oscuro para las extremidades
+        const targets = [];
+        let targetSize = 35;
+        const targetBodyColor = '#e91e63';
+        const targetEyeColor = '#ffffff';
+        const targetLimbColor = '#c2185b';
         let targetSpeedMin = 1.5;
         let targetSpeedMax = 4;
-        let targetInitialHealth = 1; // Vida inicial de los insectos normales
+        let targetInitialHealth = 2;
         
-        let targetSpawnInterval = 1200; // Un objetivo cada 1.2 segundos (ms)
+        let targetSpawnInterval = 1000;
         let lastTargetSpawnTime = 0;
 
-        let autoShootIntervalId = null; // ID para el intervalo de disparo automático del jugador
-        let playerFireRate = 200; // Milisegundos entre disparos (200ms = 5 disparos por segundo)
+        const healthPacks = [];
+        let healthPacksSpawnedThisLevel = 0;
+        const HEALTH_PACK_RECOVERY = 70;
+        const HEALTH_PACKS_PER_LEVEL = 3;
 
-        // Reina Insecto
-        let queen = null; // Objeto para la reina activa
-        const QUEEN_COLOR = '#8e24aa'; // Púrpura oscuro para la reina
-        const QUEEN_EYE_COLOR = '#ff0000'; // Ojos rojos
-        const QUEEN_LIMB_COLOR = '#673ab7'; // Púrpura más claro
-        const QUEEN_DAMAGE_ON_ESCAPE = 40; // Daño que hace la reina si se escapa
+        const powerUps = [];
+        let powerUpInventory = 0;
+        let triShotActive = false;
+        let triShotEndTime = 0;
+        const TRI_SHOT_DURATION = 4000;
+        let powerUpsSpawnedThisLevel = 0;
+        const POWER_UPS_PER_LEVEL = 2;
 
-        const queenProjectiles = []; // Proyectiles de la reina
-        const queenProjectileSpeed = 3; // Velocidad de los proyectiles de la reina
+        let autoShootIntervalId = null;
+        let playerFireRate = 200;
+
+        let queen = null;
+        const queenProjectiles = [];
+        const QUEEN_COLOR = '#8e24aa';
+        const QUEEN_EYE_COLOR = '#ff0000';
+        const QUEEN_LIMB_COLOR = '#673ab7';
+        const QUEEN_DAMAGE_ON_ESCAPE = 40;
+        const queenProjectileSpeed = 4;
         const queenProjectileRadius = 10;
-        const queenProjectileColor = '#ff0000'; // Rojo para los proyectiles de la reina
-        const queenProjectileDamage = 10; // Daño de los proyectiles de la reina
-        let queenFireRate = 1000; // Milisegundos entre disparos de la reina
+        const queenProjectileColor = '#ff0000';
+        // MODIFICADO: Daño de la reina reducido a 2
+        const queenProjectileDamage = 2;
+        let queenFireRate = 1000;
         let lastQueenShotTime = 0;
+        const QUEEN_SHOT_SPREAD = Math.PI / 8;
 
-        // --- Configuración de Sonidos ---
-        // (Nota: Usando CDN de Tone.js para compatibilidad en entornos web. Asegúrate que las URLs funcionen.)
         const soundBullet = new Audio('https://cdn.jsdelivr.net/gh/Tonejs/Tone.js/examples/audio/505_laser_shoot.mp3');
         soundBullet.volume = 0.2;
-        soundBullet.preload = 'auto';
-
         const soundHit = new Audio('https://cdn.jsdelivr.net/gh/Tonejs/Tone.js/examples/audio/505_hit.mp3');
         soundHit.volume = 0.4;
-        soundHit.preload = 'auto';
-
         const soundExplosion = new Audio('https://cdn.jsdelivr.net/gh/Tonejs/Tone.js/examples/audio/505_explosion.mp3');
         soundExplosion.volume = 0.6;
-        soundExplosion.preload = 'auto';
-
         const soundLevelUp = new Audio('https://cdn.jsdelivr.net/gh/Tonejs/Tone.js/examples/audio/505_pickup.mp3');
         soundLevelUp.volume = 0.7;
-        soundLevelUp.preload = 'auto';
-
+        const soundHealthPickup = new Audio('https://cdn.jsdelivr.net/gh/rpg-audio/sounds/healing.mp3');
+        soundHealthPickup.volume = 0.8;
+        const soundPowerUpPickup = new Audio('https://cdn.jsdelivr.net/gh/rpg-audio/sounds/powerup.mp3');
+        soundPowerUpPickup.volume = 0.7;
         const soundQueenSpawn = new Audio('https://cdn.jsdelivr.net/gh/Tonejs/Tone.js/examples/audio/505_gloop.mp3');
         soundQueenSpawn.volume = 0.7;
-        soundQueenSpawn.preload = 'auto';
-
         const soundGameOver = new Audio('https://cdn.jsdelivr.net/gh/Tonejs/Tone.js/examples/audio/505_fail.mp3');
         soundGameOver.volume = 0.7;
-        soundGameOver.preload = 'auto';
-        
+
         // --- Funciones de Dibujo ---
 
         function drawPlayer() {
             player.x = Math.max(0, Math.min(player.x, canvas.width - player.width));
-            ctx.fillStyle = player.color;
-            ctx.fillRect(player.x, player.y, player.width, player.height);
-            ctx.fillRect(player.x + player.width / 2 - player.barrelWidth / 2, player.y - player.barrelHeight, player.barrelWidth, player.barrelHeight);
+            const x = player.x + player.width / 2;
+            const y = player.y + player.height / 2;
+            ctx.fillStyle = '#2ecc71';
             ctx.beginPath();
-            ctx.arc(player.x + player.width / 2, player.y + player.height, player.width / 2, 0, Math.PI, true);
+            ctx.ellipse(x, y, player.width / 2, player.height / 2, 0, 0, Math.PI * 2);
             ctx.fill();
-            ctx.closePath();
+            ctx.fillStyle = 'white';
+            ctx.beginPath();
+            ctx.arc(x - 15, y - 15, 12, 0, Math.PI * 2);
+            ctx.arc(x + 15, y - 15, 12, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = 'black';
+            ctx.beginPath();
+            ctx.arc(x - 15, y - 15, 5, 0, Math.PI * 2);
+            ctx.arc(x + 15, y - 15, 5, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.strokeStyle = '#333';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.arc(x, y + 5, 15, 0.2 * Math.PI, 0.8 * Math.PI);
+            ctx.stroke();
         }
 
         function drawBullet(bullet) {
@@ -325,7 +338,7 @@
             ctx.closePath();
             ctx.shadowBlur = 0;
         }
-
+        
         function drawQueenProjectile(proj) {
             ctx.beginPath();
             ctx.arc(proj.x, proj.y, proj.radius, 0, Math.PI * 2);
@@ -337,52 +350,78 @@
             ctx.shadowBlur = 0;
         }
 
+        function drawHealthPack(pack) {
+            const x = pack.x, y = pack.y, size = pack.size;
+            ctx.fillStyle = '#e74c3c'; ctx.shadowColor = '#e74c3c'; ctx.shadowBlur = 10;
+            ctx.beginPath();
+            ctx.moveTo(x, y - size / 4);
+            ctx.bezierCurveTo(x, y - size / 2, x - size / 2, y - size / 2, x - size / 2, y - size / 4);
+            ctx.bezierCurveTo(x - size / 2, y, x, y + size / 4, x, y + size / 2);
+            ctx.bezierCurveTo(x, y + size / 4, x + size / 2, y, x + size / 2, y - size / 4);
+            ctx.bezierCurveTo(x + size / 2, y - size / 2, x, y - size / 2, x, y - size / 4);
+            ctx.fill();
+            ctx.shadowBlur = 0;
+        }
+
+        function drawPowerUp(powerUp) {
+            const x = powerUp.x, y = powerUp.y, size = powerUp.size;
+            ctx.fillStyle = '#f1c40f'; ctx.shadowColor = '#f1c40f'; ctx.shadowBlur = 15;
+            ctx.beginPath();
+            ctx.moveTo(x, y - size / 2);
+            for (let i = 0; i < 5; i++) {
+                ctx.lineTo(x + Math.cos((18 + i * 72) * Math.PI / 180) * (size / 2), y - Math.sin((18 + i * 72) * Math.PI / 180) * (size / 2));
+                ctx.lineTo(x + Math.cos((54 + i * 72) * Math.PI / 180) * (size / 4), y - Math.sin((54 + i * 72) * Math.PI / 180) * (size / 4));
+            }
+            ctx.closePath();
+            ctx.fill();
+            ctx.shadowBlur = 0;
+        }
+
         function drawTarget(target) {
+            const isQueen = target.isQueen;
             ctx.fillStyle = target.color;
             ctx.beginPath();
-            ctx.ellipse(target.x + target.size / 2, target.y + target.size / 2 + (target.isQueen ? 15 : 5), target.size / 2 * 0.8, target.size / 2 * 1.2, Math.PI / 2, 0, Math.PI * 2);
+            ctx.ellipse(target.x + target.size / 2, target.y + target.size / 2 + (isQueen ? 15 : 5), target.size / 2 * 0.8, target.size / 2 * 1.2, Math.PI / 2, 0, Math.PI * 2);
             ctx.fill();
             ctx.closePath();
             ctx.beginPath();
-            ctx.arc(target.x + target.size / 2, target.y + target.size / 2 - (target.isQueen ? 5 : 10), target.size / (target.isQueen ? 3 : 4), 0, Math.PI * 2);
+            ctx.arc(target.x + target.size / 2, target.y + target.size / 2 - (isQueen ? 5 : 10), target.size / (isQueen ? 3 : 4), 0, Math.PI * 2);
             ctx.fill();
             ctx.closePath();
-            ctx.fillStyle = target.isQueen ? QUEEN_EYE_COLOR : targetEyeColor;
+            ctx.fillStyle = isQueen ? QUEEN_EYE_COLOR : targetEyeColor;
             ctx.beginPath();
-            ctx.arc(target.x + target.size / 2 - target.size / (target.isQueen ? 5 : 8), target.y + target.size / 2 - (target.isQueen ? 8 : 12), target.size / (target.isQueen ? 8 : 10), 0, Math.PI * 2);
-            ctx.arc(target.x + target.size / 2 + target.size / (target.isQueen ? 5 : 8), target.y + target.size / 2 - (target.isQueen ? 8 : 12), target.size / (target.isQueen ? 8 : 10), 0, Math.PI * 2);
+            ctx.arc(target.x + target.size / 2 - target.size / (isQueen ? 5 : 8), target.y + target.size / 2 - (isQueen ? 8 : 12), target.size / (isQueen ? 8 : 10), 0, Math.PI * 2);
+            ctx.arc(target.x + target.size / 2 + target.size / (isQueen ? 5 : 8), target.y + target.size / 2 - (isQueen ? 8 : 12), target.size / (isQueen ? 8 : 10), 0, Math.PI * 2);
             ctx.fill();
             ctx.closePath();
-            ctx.strokeStyle = target.isQueen ? QUEEN_LIMB_COLOR : targetLimbColor;
-            ctx.lineWidth = target.isQueen ? 3 : 2;
+            ctx.strokeStyle = isQueen ? QUEEN_LIMB_COLOR : targetLimbColor;
+            ctx.lineWidth = isQueen ? 3 : 2;
             ctx.beginPath();
-            ctx.moveTo(target.x + target.size / 2 - target.size / (target.isQueen ? 5 : 8), target.y + target.size / 2 - (target.isQueen ? 8 : 12));
-            ctx.lineTo(target.x + target.size / 2 - target.size / (target.isQueen ? 3 : 4), target.y + target.size / 2 - target.size / 2);
-            ctx.moveTo(target.x + target.size / 2 + target.size / (target.isQueen ? 5 : 8), target.y + target.size / 2 - (target.isQueen ? 8 : 12));
-            ctx.lineTo(target.x + target.size / 2 + target.size / (target.isQueen ? 3 : 4), target.y + target.size / 2 - target.size / 2);
+            ctx.moveTo(target.x + target.size / 2 - target.size / (isQueen ? 5 : 8), target.y + target.size / 2 - (isQueen ? 8 : 12));
+            ctx.lineTo(target.x + target.size / 2 - target.size / (isQueen ? 3 : 4), target.y + target.size / 2 - target.size / 2);
+            ctx.moveTo(target.x + target.size / 2 + target.size / (isQueen ? 5 : 8), target.y + target.size / 2 - (isQueen ? 8 : 12));
+            ctx.lineTo(target.x + target.size / 2 + target.size / (isQueen ? 3 : 4), target.y + target.size / 2 - target.size / 2);
             ctx.stroke();
             ctx.beginPath();
-            ctx.moveTo(target.x + target.size / 2 - target.size / 3, target.y + target.size / 2 + (target.isQueen ? 10 : 5));
-            ctx.lineTo(target.x + target.size / 2 - target.size / 3 - (target.isQueen ? 15 : 10), target.y + target.size / 2 + (target.isQueen ? 25 : 15));
-            ctx.moveTo(target.x + target.size / 2 + target.size / 3, target.y + target.size / 2 + (target.isQueen ? 10 : 5));
-            ctx.lineTo(target.x + target.size / 2 + target.size / 3 + (target.isQueen ? 15 : 10), target.y + target.size / 2 + (target.isQueen ? 25 : 15));
-            ctx.moveTo(target.x + target.size / 2 - target.size / 4, target.y + target.size / 2 + (target.isQueen ? 20 : 15));
-            ctx.lineTo(target.x + target.size / 2 - target.size / 4 - (target.isQueen ? 12 : 8), target.y + target.size / 2 + (target.isQueen ? 35 : 25));
-            ctx.moveTo(target.x + target.size / 2 + target.size / 4, target.y + target.size / 2 + (target.isQueen ? 20 : 15));
-            ctx.lineTo(target.x + target.size / 2 + target.size / 4 + (target.isQueen ? 12 : 8), target.y + target.size / 2 + (target.isQueen ? 35 : 25));
+            ctx.moveTo(target.x + target.size / 2 - target.size / 3, target.y + target.size / 2 + (isQueen ? 10 : 5));
+            ctx.lineTo(target.x + target.size / 2 - target.size / 3 - (isQueen ? 15 : 10), target.y + target.size / 2 + (isQueen ? 25 : 15));
+            ctx.moveTo(target.x + target.size / 2 + target.size / 3, target.y + target.size / 2 + (isQueen ? 10 : 5));
+            ctx.lineTo(target.x + target.size / 2 + target.size / 3 + (isQueen ? 15 : 10), target.y + target.size / 2 + (isQueen ? 25 : 15));
+            ctx.moveTo(target.x + target.size / 2 - target.size / 4, target.y + target.size / 2 + (isQueen ? 20 : 15));
+            ctx.lineTo(target.x + target.size / 2 - target.size / 4 - (isQueen ? 12 : 8), target.y + target.size / 2 + (isQueen ? 35 : 25));
+            ctx.moveTo(target.x + target.size / 2 + target.size / 4, target.y + target.size / 2 + (isQueen ? 20 : 15));
+            ctx.lineTo(target.x + target.size / 2 + target.size / 4 + (isQueen ? 12 : 8), target.y + target.size / 2 + (isQueen ? 35 : 25));
             ctx.stroke();
             ctx.lineWidth = 1;
-            const healthBarWidth = target.size * (target.isQueen ? 1.5 : 1);
-            const healthBarHeight = target.isQueen ? 8 : 5;
+            const healthBarWidth = target.size * (isQueen ? 1.5 : 1);
+            const healthBarHeight = isQueen ? 8 : 5;
             const healthBarX = target.x + (target.size - healthBarWidth) / 2;
             const healthBarY = target.y - healthBarHeight - 10;
-            ctx.fillStyle = '#ff0000';
-            ctx.fillRect(healthBarX, healthBarY, healthBarWidth, healthBarHeight);
+            ctx.fillStyle = '#ff0000'; ctx.fillRect(healthBarX, healthBarY, healthBarWidth, healthBarHeight);
             ctx.fillStyle = '#00ff00';
             const currentHealthWidth = (target.health / target.maxHealth) * healthBarWidth;
             ctx.fillRect(healthBarX, healthBarY, currentHealthWidth, healthBarHeight);
-            ctx.strokeStyle = '#333';
-            ctx.strokeRect(healthBarX, healthBarY, healthBarWidth, healthBarHeight);
+            ctx.strokeStyle = '#333'; ctx.strokeRect(healthBarX, healthBarY, healthBarWidth, healthBarHeight);
         }
 
         // --- Lógica del Juego ---
@@ -390,68 +429,124 @@
         function updatePlayerHealthDisplay() {
             const percentage = Math.max(0, (player.health / player.maxHealth) * 100);
             playerHealthBarFill.style.width = `${percentage}%`;
-            playerHealthText.textContent = `${Math.max(0, player.health)} / ${player.maxHealth}`;
+            playerHealthText.textContent = `${Math.max(0, Math.round(player.health))} / ${player.maxHealth}`;
             if (percentage > 60) playerHealthBarFill.style.backgroundColor = '#28a745';
             else if (percentage > 30) playerHealthBarFill.style.backgroundColor = '#ffc107';
             else playerHealthBarFill.style.backgroundColor = '#dc3545';
         }
+
+        function updatePowerUpButton() {
+            powerUpButton.textContent = `Poder (${powerUpInventory})`;
+            powerUpButton.disabled = powerUpInventory === 0 || triShotActive;
+        }
+        
+        function spawnHealthPack() {
+            if (healthPacksSpawnedThisLevel >= HEALTH_PACKS_PER_LEVEL) return;
+            healthPacks.push({ x: Math.random() * (canvas.width - 30) + 15, y: -30, size: 30, speed: 2.5 });
+            healthPacksSpawnedThisLevel++;
+        }
+
+        function spawnPowerUp() {
+            if (powerUpsSpawnedThisLevel >= POWER_UPS_PER_LEVEL) return;
+            powerUps.push({ x: Math.random() * (canvas.width - 30) + 15, y: -30, size: 30, speed: 2.5 });
+            powerUpsSpawnedThisLevel++;
+        }
         
         function update() {
-            if (player.health <= 0 && gameState !== 'GAME_OVER') {
+            if (gameState !== 'PLAYING' && gameState !== 'BOSS_FIGHT') return;
+
+            if (player.health <= 0) {
                 endGame('GAME_OVER');
                 return;
             }
 
-            for (let i = bullets.length - 1; i >= 0; i--) {
-                bullets[i].y -= bulletSpeed;
-                if (bullets[i].y + bullets[i].radius < 0) bullets.splice(i, 1);
+            if (triShotActive && Date.now() > triShotEndTime) {
+                triShotActive = false;
+                updatePowerUpButton();
+            }
+
+            bullets.forEach((bullet, index) => {
+                 if (bullet.vx !== undefined) {
+                    bullet.x += bullet.vx;
+                    bullet.y += bullet.vy;
+                } else {
+                    bullet.y -= bulletSpeed;
+                }
+                if (bullet.y + bullet.radius < 0 || bullet.x < 0 || bullet.x > canvas.width) {
+                    bullets.splice(index, 1);
+                }
+            });
+
+            [healthPacks, powerUps].forEach((collectibleArray, type) => {
+                for (let i = collectibleArray.length - 1; i >= 0; i--) {
+                    const item = collectibleArray[i];
+                    item.y += item.speed;
+                    const dx = item.x - (player.x + player.width / 2);
+                    const dy = item.y - (player.y + player.height / 2);
+                    if (Math.sqrt(dx * dx + dy * dy) < item.size / 2 + player.width / 2) {
+                        if (type === 0) {
+                            player.health = Math.min(player.maxHealth, player.health + HEALTH_PACK_RECOVERY);
+                            updatePlayerHealthDisplay();
+                            soundHealthPickup.cloneNode().play();
+                        } else {
+                            powerUpInventory++;
+                            updatePowerUpButton();
+                            soundPowerUpPickup.cloneNode().play();
+                        }
+                        collectibleArray.splice(i, 1);
+                    } else if (item.y - item.size > canvas.height) {
+                        collectibleArray.splice(i, 1);
+                    }
+                }
+            });
+
+            if (gameState === 'PLAYING') {
+                const currentTime = Date.now();
+                if (bugsSpawnedThisWave < TOTAL_BUGS_IN_WAVE && currentTime - lastTargetSpawnTime > targetSpawnInterval) {
+                    spawnTarget();
+                    lastTargetSpawnTime = currentTime;
+                }
+
+                if (insectsDestroyedThisLevel >= BUGS_TO_PASS_LEVEL) {
+                    spawnQueen();
+                } else if (bugsLeftTheScreen >= TOTAL_BUGS_IN_WAVE) {
+                    endGame('GAME_OVER');
+                }
+            }
+
+            if (gameState === 'BOSS_FIGHT' && queen) {
+                const currentTime = Date.now();
+                if (currentTime - lastQueenShotTime > queenFireRate) {
+                    queenAttack();
+                    lastQueenShotTime = currentTime;
+                }
             }
 
             for (let i = queenProjectiles.length - 1; i >= 0; i--) {
-                queenProjectiles[i].y += queenProjectileSpeed;
-                if (queenProjectiles[i].y - queenProjectiles[i].radius > canvas.height) queenProjectiles.splice(i, 1);
+                const proj = queenProjectiles[i];
+                proj.x += proj.vx;
+                proj.y += proj.vy;
+                if (proj.y - proj.radius > canvas.height || proj.x + proj.radius < 0 || proj.x - proj.radius > canvas.width) {
+                    queenProjectiles.splice(i, 1);
+                } else if (proj.x + proj.radius > player.x && proj.x - proj.radius < player.x + player.width &&
+                           proj.y + proj.radius > player.y && proj.y - proj.radius < player.y + player.height) {
+                    player.health -= queenProjectileDamage;
+                    updatePlayerHealthDisplay();
+                    queenProjectiles.splice(i, 1);
+                }
             }
 
             for (let i = targets.length - 1; i >= 0; i--) {
                 const target = targets[i];
                 target.y += target.speed;
                 if (target.y - target.size > canvas.height) {
-                    targets.splice(i, 1);
-                    if (target.isQueen) {
-                        player.health -= QUEEN_DAMAGE_ON_ESCAPE;
-                        updatePlayerHealthDisplay();
-                        queen = null;
-                        queenProjectiles.length = 0;
-                        if (player.health <= 0) endGame('GAME_OVER');
-                        else levelPassed();
-                    } else {
+                    if (target.isQueen) player.health -= QUEEN_DAMAGE_ON_ESCAPE;
+                    else {
                         missedTargets++;
-                        if (missedTargets >= MAX_MISSED_TARGETS_PER_LEVEL) {
-                            player.health -= 10;
-                            missedTargets = 0;
-                            updatePlayerHealthDisplay();
-                            if (player.health <= 0) {
-                                endGame('GAME_OVER');
-                                return;
-                            }
-                        }
-                        missedDisplay.textContent = `${missedTargets} / ${MAX_MISSED_TARGETS_PER_LEVEL}`;
+                        bugsLeftTheScreen++;
+                        missedDisplay.textContent = missedTargets;
                     }
-                }
-            }
-
-            const currentTime = Date.now();
-            if (gameState === 'PLAYING' && queen === null) {
-                if (insectsDestroyedThisLevel >= INSECTS_TO_LEVEL_UP) {
-                    spawnQueen();
-                } else if (currentTime - lastTargetSpawnTime > targetSpawnInterval) {
-                    spawnTarget();
-                    lastTargetSpawnTime = currentTime;
-                }
-            } else if (gameState === 'BOSS_FIGHT' && queen !== null) {
-                if (currentTime - lastQueenShotTime > queenFireRate) {
-                    queenAttack();
-                    lastQueenShotTime = currentTime;
+                    targets.splice(i, 1);
                 }
             }
 
@@ -459,52 +554,35 @@
                 for (let j = targets.length - 1; j >= 0; j--) {
                     const bullet = bullets[i];
                     const target = targets[j];
-                    const targetCenterX = target.x + target.size / 2;
-                    const targetCenterY = target.y + target.size / 2 + (target.isQueen ? 15 : 5);
-                    const collisionRadius = target.size / 2 * (target.isQueen ? 1.0 : 0.8);
-                    const distSq = (bullet.x - targetCenterX) ** 2 + (bullet.y - targetCenterY) ** 2;
-                    if (distSq < (bullet.radius + collisionRadius) ** 2) {
+                    const distSq = (bullet.x - (target.x + target.size / 2)) ** 2 + (bullet.y - (target.y + target.size / 2)) ** 2;
+                    if (distSq < (bullet.radius + target.size / 2) ** 2) {
                         target.health -= bulletDamage;
-                        const hitClone = soundHit.cloneNode();
-                        hitClone.volume = soundHit.volume;
-                        hitClone.play().catch(e => console.log("Error playing hit sound:", e));
+                        soundHit.cloneNode().play();
                         bullets.splice(i, 1);
                         if (target.health <= 0) {
-                            const explosionClone = soundExplosion.cloneNode();
-                            explosionClone.volume = soundExplosion.volume;
-                            explosionClone.play().catch(e => console.log("Error playing explosion sound:", e));
-                            score += target.isQueen ? 500 * currentLevel : 10;
+                            soundExplosion.cloneNode().play();
+                            score += target.isQueen ? 500 : 10;
                             scoreDisplay.textContent = score;
                             targets.splice(j, 1);
+
                             if (target.isQueen) {
                                 queen = null;
-                                queenProjectiles.length = 0;
                                 levelPassed();
                             } else {
                                 insectsDestroyedThisLevel++;
+                                bugsLeftTheScreen++;
+                                if (insectsDestroyedThisLevel === 7 || insectsDestroyedThisLevel === 15) spawnHealthPack();
+                                if (insectsDestroyedThisLevel === 5 || insectsDestroyedThisLevel === 12) spawnPowerUp();
                             }
                         }
                         break;
                     }
                 }
             }
-
-            for (let i = queenProjectiles.length - 1; i >= 0; i--) {
-                const proj = queenProjectiles[i];
-                if (proj.x + proj.radius > player.x && proj.x - proj.radius < player.x + player.width &&
-                    proj.y + proj.radius > player.y - player.barrelHeight && proj.y - proj.radius < player.y + player.height) {
-                    player.health -= queenProjectileDamage;
-                    updatePlayerHealthDisplay();
-                    queenProjectiles.splice(i, 1);
-                    if (player.health <= 0) {
-                        endGame('GAME_OVER');
-                        return;
-                    }
-                }
-            }
         }
         
         function spawnTarget() {
+            bugsSpawnedThisWave++;
             const x = Math.random() * (canvas.width - targetSize);
             const speed = Math.random() * (targetSpeedMax - targetSpeedMin) + targetSpeedMin;
             targets.push({
@@ -512,142 +590,186 @@
                 health: targetInitialHealth, maxHealth: targetInitialHealth, isQueen: false
             });
         }
-
+        
         function spawnQueen() {
-            if (currentLevel > MAX_LEVEL || queen !== null) return;
             gameState = 'BOSS_STAGE_PAUSE';
+            targets.length = 0;
             if (autoShootIntervalId) clearInterval(autoShootIntervalId);
             autoShootIntervalId = null;
 
-            soundQueenSpawn.play().catch(e => console.log("Error playing queen spawn sound:", e));
-            messageText.innerHTML = `¡REINA ${currentLevel} SE ACERCA!`;
+            soundQueenSpawn.play();
+            messageText.innerHTML = `¡LA REINA NIVEL ${currentLevel} APARECE!`;
             startButton.textContent = '¡Enfréntala!';
             gameMessage.style.display = 'flex';
-            
-            targets.length = 0;
-            queenProjectiles.length = 0;
-            missedTargets = 0;
-            missedDisplay.textContent = `0 / ${MAX_MISSED_TARGETS_PER_LEVEL}`;
             
             const queenSize = targetSize * 2.5 + (currentLevel - 1) * 3;
             const queenHealth = 50 + (currentLevel - 1) * 20;
             const queenSpeed = 0.5 + (currentLevel - 1) * 0.05;
-            queenFireRate = Math.max(300, 1000 - (currentLevel - 1) * 50);
+            queenFireRate = Math.max(800, 1000 - (currentLevel - 1) * 20);
 
             queen = {
-                x: canvas.width / 2 - queenSize / 2, y: -queenSize, size: queenSize, color: QUEEN_COLOR,
-                speed: Math.min(queenSpeed, 1.5), health: queenHealth, maxHealth: queenHealth, isQueen: true
+                x: canvas.width / 2 - queenSize / 2, y: -queenSize, size: queenSize, color: QUEEN_COLOR, speed: Math.min(queenSpeed, 1.5),
+                health: queenHealth, maxHealth: queenHealth, isQueen: true
             };
             targets.push(queen);
         }
-
+        
         function queenAttack() {
             if (!queen) return;
-            queenProjectiles.push({
-                x: queen.x + queen.size / 2, y: queen.y + queen.size,
-                radius: queenProjectileRadius, color: queenProjectileColor
-            });
+            const spawnX = queen.x + queen.size / 2;
+            const spawnY = queen.y + queen.size;
+            const targetX = player.x + player.width / 2;
+            const targetY = player.y;
+            const angleToPlayer = Math.atan2(targetY - spawnY, targetX - spawnX);
+
+            for (let i = -1; i <= 1; i++) {
+                const angle = angleToPlayer + i * QUEEN_SHOT_SPREAD;
+                const vx = Math.cos(angle) * queenProjectileSpeed;
+                const vy = Math.sin(angle) * queenProjectileSpeed;
+                queenProjectiles.push({x: spawnX, y: spawnY, radius: queenProjectileRadius, color: queenProjectileColor, vx, vy});
+            }
         }
         
         function levelPassed() {
-            if (gameState === 'GAME_OVER') return;
-            soundLevelUp.play().catch(e => console.log("Error playing level up sound:", e));
+            if (gameState === 'GAME_OVER' || gameState === 'VICTORY') return;
+            gameState = 'LEVEL_UP_PAUSE';
+            soundLevelUp.play();
             currentLevel++;
 
             if (currentLevel > MAX_LEVEL) {
                 endGame('VICTORY');
                 return;
             }
-
-            gameState = 'LEVEL_UP_PAUSE';
+            
             if (autoShootIntervalId) clearInterval(autoShootIntervalId);
             autoShootIntervalId = null;
-            
-            // Mejoras de rifle cada 3 niveles
-            if (currentLevel % 3 === 0) {
-                 player.bulletsPerShot = Math.min(5, player.bulletsPerShot + 1); // Max 5 balas
-                 messageText.innerHTML = `¡NIVEL ${currentLevel} SUPERADO!<br>¡RIFLE MEJORADO!`;
-            } else {
-                 messageText.innerHTML = `¡NIVEL ${currentLevel} SUPERADO!`;
-            }
 
-            levelDisplay.textContent = currentLevel;
-            startButton.textContent = `Continuar Nivel ${currentLevel}`;
+            // MODIFICADO: Mejoras de jugador al pasar de nivel
+            playerFireRate = Math.max(100, 200 - (currentLevel - 1) * 5); // Aumenta cadencia
+            
+            if (currentLevel % 3 === 0) {
+                 player.bulletsPerShot = Math.min(5, player.bulletsPerShot + 1); // Añade un proyectil
+                 messageText.innerHTML = `¡NIVEL ${currentLevel - 1} COMPLETADO!<br>¡DISPARO MEJORADO!`;
+            } else {
+                 messageText.innerHTML = `¡NIVEL ${currentLevel - 1} COMPLETADO!`;
+            }
+            
+            startButton.textContent = `Iniciar Nivel ${currentLevel}`;
             gameMessage.style.display = 'flex';
 
-            insectsDestroyedThisLevel = 0;
-            missedTargets = 0;
-            missedDisplay.textContent = `0 / ${MAX_MISSED_TARGETS_PER_LEVEL}`;
-            
+            targetInitialHealth = 2 + Math.floor(currentLevel / 2);
             targetSpeedMin += 0.1;
             targetSpeedMax += 0.15;
-            targetInitialHealth = Math.ceil(currentLevel / 2);
-            targetSpawnInterval = Math.max(400, targetSpawnInterval - 50);
         }
 
         function endGame(reason) {
-            if (gameState === 'GAME_OVER') return; // Evita llamadas múltiples
+            if (gameState === 'GAME_OVER') return;
             gameState = 'GAME_OVER';
-
             if (autoShootIntervalId) clearInterval(autoShootIntervalId);
             autoShootIntervalId = null;
 
-            if (reason === 'VICTORY') {
-                messageText.innerHTML = `¡VICTORIA!<br>Puntuación Final: ${score}`;
-            } else {
-                soundGameOver.play().catch(e => console.log("Error playing game over sound:", e));
+            if (reason === 'VICTORY') messageText.innerHTML = `¡VICTORIA!<br>Puntuación Final: ${score}`;
+            else {
+                soundGameOver.play();
                 messageText.innerHTML = `GAME OVER<br>Puntuación: ${score}`;
             }
             startButton.textContent = 'Jugar de Nuevo';
             gameMessage.style.display = 'flex';
+            powerUpButton.style.display = 'none';
         }
 
         function playerShoot() {
             const startX = player.x + player.width / 2;
-            const totalWidth = (player.bulletsPerShot - 1) * player.bulletSpread;
-            const initialOffset = -totalWidth / 2;
-            for (let i = 0; i < player.bulletsPerShot; i++) {
-                bullets.push({
-                    x: startX + initialOffset + (i * player.bulletSpread),
-                    y: player.y - player.barrelHeight,
-                    radius: bulletRadius,
-                    color: bulletColor,
-                });
+            const startY = player.y + 10;
+            soundBullet.cloneNode().play();
+
+            if (triShotActive) {
+                const spreadAngle = Math.PI / 6;
+                for (let i = -1; i <= 1; i++) {
+                    bullets.push({
+                        x: startX, y: startY, radius: bulletRadius, color: bulletColor,
+                        vx: Math.sin(i * spreadAngle) * bulletSpeed,
+                        vy: -Math.cos(i * spreadAngle) * bulletSpeed
+                    });
+                }
+            } else {
+                // MODIFICADO: Lógica para manejar el disparo múltiple por nivel
+                const totalWidth = (player.bulletsPerShot - 1) * player.bulletSpread;
+                const initialOffset = -totalWidth / 2;
+                for (let i = 0; i < player.bulletsPerShot; i++) {
+                    bullets.push({
+                        x: startX + initialOffset + (i * player.bulletSpread),
+                        y: startY,
+                        radius: bulletRadius, color: bulletColor
+                    });
+                }
             }
-            const bulletClone = soundBullet.cloneNode();
-            bulletClone.volume = soundBullet.volume;
-            bulletClone.play().catch(e => console.log("Error playing bullet sound:", e));
+        }
+        
+        function resetLevelState() {
+            targets.length = 0;
+            bullets.length = 0;
+            healthPacks.length = 0;
+            powerUps.length = 0;
+            queenProjectiles.length = 0;
+            queen = null;
+            
+            insectsDestroyedThisLevel = 0;
+            bugsSpawnedThisWave = 0;
+            bugsLeftTheScreen = 0;
+            healthPacksSpawnedThisLevel = 0;
+            powerUpsSpawnedThisLevel = 0;
+            
+            triShotActive = false;
+            updatePowerUpButton();
         }
 
         function startGame() {
-            gameState = 'PLAYING';
+            gameState = 'IDLE';
             score = 0;
             currentLevel = 1;
-            insectsDestroyedThisLevel = 0;
-            missedTargets = 0;
             player.health = player.maxHealth;
-            player.bulletsPerShot = 1;
-            targets.length = 0;
-            bullets.length = 0;
-            queenProjectiles.length = 0;
-            queen = null;
+            powerUpInventory = 0;
+            targetInitialHealth = 2;
             targetSpeedMin = 1.5;
             targetSpeedMax = 4;
-            targetInitialHealth = 1;
-            targetSpawnInterval = 1200;
+            missedTargets = 0;
+            playerFireRate = 200; // Reiniciar cadencia
+            player.bulletsPerShot = 1; // Reiniciar proyectiles
 
             scoreDisplay.textContent = score;
+            missedDisplay.textContent = missedTargets;
+            startLevel();
+        }
+        
+        function startLevel() {
+            gameState = 'PLAYING';
             levelDisplay.textContent = currentLevel;
-            missedDisplay.textContent = `0 / ${MAX_MISSED_TARGETS_PER_LEVEL}`;
             updatePlayerHealthDisplay();
-
+            resetLevelState();
+            
             gameMessage.style.display = 'none';
+            powerUpButton.style.display = 'block';
 
             if (autoShootIntervalId) clearInterval(autoShootIntervalId);
             autoShootIntervalId = setInterval(playerShoot, playerFireRate);
         }
 
-        // --- Bucle Principal y Eventos ---
+        function activatePowerUp() {
+            if (powerUpInventory > 0 && !triShotActive) {
+                powerUpInventory--;
+                triShotActive = true;
+                triShotEndTime = Date.now() + TRI_SHOT_DURATION;
+                updatePowerUpButton();
+            }
+        }
+        
+        function handleTouch(e) {
+            e.preventDefault();
+            const touch = e.touches[0];
+            const rect = canvas.getBoundingClientRect();
+            player.x = touch.clientX - rect.left - player.width / 2;
+        }
 
         function draw() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -655,6 +777,8 @@
             bullets.forEach(drawBullet);
             targets.forEach(drawTarget);
             queenProjectiles.forEach(drawQueenProjectile);
+            healthPacks.forEach(drawHealthPack);
+            powerUps.forEach(drawPowerUp);
         }
 
         function gameLoop() {
@@ -665,19 +789,21 @@
             requestAnimationFrame(gameLoop);
         }
 
+        // --- Eventos ---
         canvas.addEventListener('mousemove', (e) => {
             const rect = canvas.getBoundingClientRect();
             player.x = e.clientX - rect.left - player.width / 2;
         });
+        canvas.addEventListener('touchmove', handleTouch, { passive: false });
+        canvas.addEventListener('touchstart', handleTouch, { passive: false });
+
+        powerUpButton.addEventListener('click', activatePowerUp);
 
         startButton.addEventListener('click', () => {
             if (gameState === 'IDLE' || gameState === 'GAME_OVER' || gameState === 'VICTORY') {
                 startGame();
             } else if (gameState === 'LEVEL_UP_PAUSE') {
-                gameState = 'PLAYING';
-                gameMessage.style.display = 'none';
-                if (autoShootIntervalId) clearInterval(autoShootIntervalId);
-                autoShootIntervalId = setInterval(playerShoot, playerFireRate);
+                startLevel();
             } else if (gameState === 'BOSS_STAGE_PAUSE') {
                 gameState = 'BOSS_FIGHT';
                 gameMessage.style.display = 'none';
@@ -687,7 +813,6 @@
             }
         });
 
-        // --- Iniciar Juego ---
         messageText.innerHTML = 'La Invasión de los Bichos';
         startButton.textContent = 'Jugar';
         gameMessage.style.display = 'flex';
