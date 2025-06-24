@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Juego de Disparos</title>
+    <title>Juego de Disparos - Bichos</title>
     <style>
         /* Estilos CSS para el cuerpo de la página y el contenedor del juego */
         body {
@@ -16,8 +16,6 @@
             background-color: #1a1a2e; /* Fondo oscuro y agradable */
             font-family: 'Press Start 2P', cursive; /* Fuente pixelada para un toque retro */
             color: #eee;
-            /* Importar la fuente de Google Fonts si se usa fuera de un entorno Canvas */
-            /* @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap'); */
         }
 
         /* Contenedor principal del juego */
@@ -30,7 +28,7 @@
             box-shadow: 0 0 25px rgba(106, 0, 138, 0.8); /* Sombra brillante */
             border-radius: 12px;
             overflow: hidden; /* Asegura que los elementos se mantengan dentro */
-            cursor: crosshair; /* Cursor de puntería para el juego */
+            cursor: crosshair; /* Cursor de puntería para el juego en PC */
             display: flex; /* Para centrar el mensaje de inicio/fin */
             justify-content: center;
             align-items: center;
@@ -47,34 +45,70 @@
             z-index: 1; /* Asegura que el canvas esté debajo del mensaje */
         }
 
-        /* Estilo para la visualización de la puntuación */
-        #score-display {
+        /* Contenedores de información superior (puntuación, perdidos, vida jugador) */
+        .info-display-container {
             position: absolute;
             top: 15px;
-            left: 15px;
-            font-size: 1.8em;
+            width: calc(100% - 30px); /* Ocupa casi todo el ancho con padding */
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 10;
+        }
+
+        /* Estilo para la visualización de la puntuación y objetivos perdidos */
+        .info-box {
+            font-size: 1.5em; /* Ligeramente más pequeño para hacer espacio */
             font-weight: bold;
             color: #ffeb3b; /* Amarillo brillante */
             background-color: rgba(0, 0, 0, 0.6);
-            padding: 10px 20px;
+            padding: 8px 15px;
             border-radius: 8px;
-            z-index: 10; /* Siempre visible encima de todo */
             border: 2px solid #ffc107;
+            white-space: nowrap; /* Evita que el texto se rompa */
         }
 
-        /* Estilo para el contador de objetivos perdidos */
         #missed-display {
+            color: #ff5252; /* Rojo para perdidos */
+            border-color: #dc3545;
+        }
+        
+        #level-display {
+            color: #00f2fe; /* Cian para el nivel */
+            border-color: #00bcd4;
+        }
+
+        /* Estilo para la barra de vida del jugador */
+        #player-health-bar-container {
             position: absolute;
-            top: 15px;
-            right: 15px;
-            font-size: 1.8em;
-            font-weight: bold;
-            color: #ff5252; /* Rojo vibrante */
+            bottom: 15px; /* Posición en la parte inferior */
+            left: 50%;
+            transform: translateX(-50%);
+            width: 200px; /* Ancho de la barra */
+            height: 25px;
             background-color: rgba(0, 0, 0, 0.6);
-            padding: 10px 20px;
-            border-radius: 8px;
+            border: 2px solid #00bcd4;
+            border-radius: 5px;
+            overflow: hidden;
             z-index: 10;
-            border: 2px solid #dc3545;
+        }
+
+        #player-health-bar-fill {
+            height: 100%;
+            background-color: #28a745; /* Verde para la vida */
+            width: 100%; /* Se ajustará con JS */
+            transition: width 0.2s ease-out; /* Transición suave al cambiar de vida */
+        }
+
+        #player-health-text {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            font-size: 0.9em;
+            font-weight: bold;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.7);
         }
 
         /* Estilo para los mensajes de inicio/fin del juego */
@@ -87,14 +121,16 @@
             border: 4px solid #00f2fe; /* Borde cian */
             box-shadow: 0 0 30px rgba(0, 242, 254, 0.7);
             color: #00f2fe;
-            font-size: 2.5em;
+            font-size: 2.2em; /* Reducido un poco para mensajes más largos */
             font-weight: bold;
             display: none; /* Oculto por defecto */
             animation: pulse 1.5s infinite alternate; /* Animación de pulsación */
+            max-width: 90%; /* Para pantallas pequeñas */
         }
 
         #game-message p {
             margin-bottom: 20px;
+            line-height: 1.2;
         }
 
         #game-message button {
@@ -135,8 +171,19 @@
 <body>
     <div id="game-container">
         <canvas id="gameCanvas" width="800" height="600"></canvas>
-        <div id="score-display">Puntuación: <span id="score">0</span></div>
-        <div id="missed-display">Perdidos: <span id="missed">0</span> / 5</div>
+        
+        <!-- Contenedor para las barras de información superiores -->
+        <div class="info-display-container">
+            <div id="score-display" class="info-box">Puntuación: <span id="score">0</span></div>
+            <div id="level-display" class="info-box">Nivel: <span id="level">1</span></div>
+            <div id="missed-display" class="info-box">Perdidos: <span id="missed">0</span> / 0</div>
+        </div>
+
+        <!-- Barra de vida del jugador (cañón) -->
+        <div id="player-health-bar-container">
+            <div id="player-health-bar-fill"></div>
+            <span id="player-health-text">100 / 100</span>
+        </div>
 
         <!-- Mensaje de inicio/fin del juego -->
         <div id="game-message">
@@ -152,6 +199,9 @@
         // Obtener elementos HTML para mostrar información y mensajes
         const scoreDisplay = document.getElementById('score');
         const missedDisplay = document.getElementById('missed');
+        const levelDisplay = document.getElementById('level'); // Nuevo
+        const playerHealthBarFill = document.getElementById('player-health-bar-fill'); // Nuevo
+        const playerHealthText = document.getElementById('player-health-text'); // Nuevo
         const gameMessage = document.getElementById('game-message');
         const messageText = document.getElementById('message-text');
         const startButton = document.getElementById('start-button');
@@ -159,8 +209,12 @@
         // --- Variables del Juego ---
         let score = 0;
         let missedTargets = 0;
-        const MAX_MISSED_TARGETS = 5;
+        const MAX_MISSED_TARGETS_PER_LEVEL = 5; // Máximos objetivos perdidos antes de bajar vida del jugador
         let gameRunning = false; // Estado del juego (true: jugando, false: parado)
+        let currentLevel = 1;
+        const MAX_LEVEL = 20;
+        const TARGETS_TO_LEVEL_UP = 50; // Puntuación necesaria para subir de nivel
+        let currentLevelScore = 0; // Puntuación dentro del nivel actual
 
         // Propiedades del jugador (cañón)
         const player = {
@@ -171,6 +225,8 @@
             y: canvas.height - 50,    // Posición desde la parte inferior
             barrelHeight: 40,         // Altura del cañón
             barrelWidth: 15,          // Ancho del cañón
+            health: 100,              // Vida del cañón
+            maxHealth: 100,
         };
 
         // Arrays para balas y objetivos
@@ -180,15 +236,22 @@
         const bulletColor = '#ffea00'; // Amarillo neón para las balas
 
         const targets = [];
-        const targetSize = 35;
-        const targetColor = '#e91e63'; // Rosa brillante para los objetivos
-        const targetSpeedMin = 1.5;
-        const targetSpeedMax = 4;
+        let targetSize = 35; // Tamaño base del insecto
+        const targetBodyColor = '#e91e63'; // Rosa brillante para el cuerpo
+        const targetEyeColor = '#ffffff'; // Blanco para los ojos
+        const targetLimbColor = '#c2185b'; // Rosa oscuro para las extremidades
+        let targetSpeedMin = 1.5;
+        let targetSpeedMax = 4;
+        let targetInitialHealth = 1; // Vida inicial de los insectos
         let targetSpawnInterval = 1200; // Un objetivo cada 1.2 segundos (ms)
         let lastTargetSpawnTime = 0;
 
         let lastShotTime = 0;
         const fireRate = 200; // Milisegundos entre disparos (200ms = 5 disparos por segundo)
+
+        // Variables para control táctil
+        let touchStartX = 0;
+        let touchMoveThreshold = 5; // Distancia mínima para considerar un movimiento de cañón
 
         // --- Funciones de Dibujo ---
 
@@ -223,24 +286,91 @@
             ctx.shadowBlur = 0; // Resetear el resplandor para otros dibujos
         }
 
-        // Dibuja un objetivo
+        // Dibuja un insecto (objetivo) con barra de vida
         function drawTarget(target) {
+            // Dibujar el cuerpo (óvalo)
             ctx.fillStyle = target.color;
-            // Dibujar un cuadrado o una forma más interesante para el objetivo
-            ctx.fillRect(target.x, target.y, target.size, target.size);
-            // Opcional: para un objetivo más alienígena/burbuja
-            /*
             ctx.beginPath();
-            ctx.arc(target.x + target.size / 2, target.y + target.size / 2, target.size / 2, 0, Math.PI * 2);
+            ctx.ellipse(target.x + target.size / 2, target.y + target.size / 2 + 5, target.size / 2 * 0.8, target.size / 2 * 1.2, Math.PI / 2, 0, Math.PI * 2);
             ctx.fill();
             ctx.closePath();
-            */
+
+            // Dibujar la cabeza (círculo)
+            ctx.beginPath();
+            ctx.arc(target.x + target.size / 2, target.y + target.size / 2 - 10, target.size / 4, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.closePath();
+
+            // Dibujar ojos
+            ctx.fillStyle = targetEyeColor;
+            ctx.beginPath();
+            ctx.arc(target.x + target.size / 2 - 5, target.y + target.size / 2 - 12, 2, 0, Math.PI * 2);
+            ctx.arc(target.x + target.size / 2 + 5, target.y + target.size / 2 - 12, 2, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.closePath();
+
+            // Dibujar antenas (líneas)
+            ctx.strokeStyle = targetLimbColor;
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(target.x + target.size / 2 - 5, target.y + target.size / 2 - 12);
+            ctx.lineTo(target.x + target.size / 2 - 10, target.y + target.size / 2 - 25);
+            ctx.moveTo(target.x + target.size / 2 + 5, target.y + target.size / 2 - 12);
+            ctx.lineTo(target.x + target.size / 2 + 10, target.y + target.size / 2 - 25);
+            ctx.stroke();
+
+            // Dibujar patas (líneas)
+            ctx.beginPath();
+            ctx.moveTo(target.x + target.size / 2 - target.size / 3, target.y + target.size / 2 + 5);
+            ctx.lineTo(target.x + target.size / 2 - target.size / 3 - 10, target.y + target.size / 2 + 15);
+            ctx.moveTo(target.x + target.size / 2 + target.size / 3, target.y + target.size / 2 + 5);
+            ctx.lineTo(target.x + target.size / 2 + target.size / 3 + 10, target.y + target.size / 2 + 15);
+            ctx.stroke();
+            ctx.lineWidth = 1; // Resetear grosor de línea
+
+            // Dibujar barra de vida del objetivo
+            const healthBarWidth = target.size;
+            const healthBarHeight = 5;
+            const healthBarX = target.x;
+            const healthBarY = target.y - healthBarHeight - 5; // Arriba del insecto
+
+            ctx.fillStyle = '#ff0000'; // Rojo para el fondo de la barra de vida (vacío)
+            ctx.fillRect(healthBarX, healthBarY, healthBarWidth, healthBarHeight);
+
+            ctx.fillStyle = '#00ff00'; // Verde para el relleno de la barra de vida
+            const currentHealthWidth = (target.health / target.maxHealth) * healthBarWidth;
+            ctx.fillRect(healthBarX, healthBarY, currentHealthWidth, healthBarHeight);
+
+            ctx.strokeStyle = '#333'; // Borde de la barra de vida
+            ctx.strokeRect(healthBarX, healthBarY, healthBarWidth, healthBarHeight);
         }
 
         // --- Lógica del Juego ---
 
+        // Actualiza la barra de vida del jugador en el HTML
+        function updatePlayerHealthDisplay() {
+            const percentage = (player.health / player.maxHealth) * 100;
+            playerHealthBarFill.style.width = `${percentage}%`;
+            playerHealthText.textContent = `${player.health} / ${player.maxHealth}`;
+
+            // Cambiar color de la barra según la vida (opcional)
+            if (percentage > 60) {
+                playerHealthBarFill.style.backgroundColor = '#28a745'; // Verde
+            } else if (percentage > 30) {
+                playerHealthBarFill.style.backgroundColor = '#ffc107'; // Amarillo
+            } else {
+                playerHealthBarFill.style.backgroundColor = '#dc3545'; // Rojo
+            }
+        }
+
         // Actualiza el estado de todos los elementos del juego (movimiento, colisiones, etc.)
         function update() {
+            // Si el jugador no tiene vida, el juego termina
+            if (player.health <= 0) {
+                endGame();
+                return;
+            }
+
             // Actualizar balas: moverlas hacia arriba
             for (let i = bullets.length - 1; i >= 0; i--) {
                 bullets[i].y -= bulletSpeed;
@@ -253,16 +383,21 @@
             // Actualizar objetivos: moverlos hacia abajo
             for (let i = targets.length - 1; i >= 0; i--) {
                 targets[i].y += targets[i].speed;
-                // Si un objetivo sale por la parte inferior, se registra como "perdido"
+                // Si un objetivo sale por la parte inferior
                 if (targets[i].y - targets[i].size > canvas.height) {
                     targets.splice(i, 1); // Eliminar objetivo
-                    missedTargets++;     // Incrementar contador de perdidos
-                    missedDisplay.textContent = `${missedTargets} / ${MAX_MISSED_TARGETS}`;
-                    // Comprobar condición de Game Over
-                    if (missedTargets >= MAX_MISSED_TARGETS) {
-                        endGame();
-                        return; // Detener la actualización si el juego termina
+                    missedTargets++;     // Incrementar contador de perdidos en el nivel
+                    // Cada vez que se pierden MAX_MISSED_TARGETS_PER_LEVEL objetivos, el jugador pierde vida
+                    if (missedTargets >= MAX_MISSED_TARGETS_PER_LEVEL) {
+                        player.health -= 20; // Pierde 20 de vida
+                        missedTargets = 0; // Resetear contador de perdidos para este nivel
+                        updatePlayerHealthDisplay();
+                        if (player.health <= 0) {
+                            endGame();
+                            return;
+                        }
                     }
+                    missedDisplay.textContent = `${missedTargets} / ${MAX_MISSED_TARGETS_PER_LEVEL}`;
                 }
             }
 
@@ -271,8 +406,6 @@
             if (currentTime - lastTargetSpawnTime > targetSpawnInterval) {
                 spawnTarget();
                 lastTargetSpawnTime = currentTime;
-                // Opcional: Aumentar la dificultad gradualmente
-                // targetSpawnInterval = Math.max(300, targetSpawnInterval * 0.98); // Reduce el intervalo
             }
 
             // Detección de colisiones (bala vs objetivo)
@@ -281,32 +414,45 @@
                     const bullet = bullets[i];
                     const target = targets[j];
 
-                    // Comprobación de colisión simple (distancia entre centros)
-                    const distSq = (bullet.x - (target.x + target.size / 2)) ** 2 + (bullet.y - (target.y + target.size / 2)) ** 2;
-                    const radiusSumSq = (bullet.radius + target.size / 2) ** 2;
+                    // Comprobación de colisión (distancia entre centros de bala y centro de cuerpo del insecto)
+                    const distSq = (bullet.x - (target.x + target.size / 2)) ** 2 + (bullet.y - (target.y + target.size / 2 + 5)) ** 2; // +5 para ajustar al centro del cuerpo del óvalo
+                    const minDistanceSq = (bullet.radius + target.size / 2 * 0.8) ** 2; // Usamos el radio más pequeño del óvalo del cuerpo
 
-                    if (distSq < radiusSumSq) {
+                    if (distSq < minDistanceSq) {
                         // Colisión detectada
-                        score += 10; // Incrementar puntuación
-                        scoreDisplay.textContent = score;
+                        target.health--; // Bajar vida del insecto
                         bullets.splice(i, 1); // Eliminar bala
-                        targets.splice(j, 1); // Eliminar objetivo
+                        
+                        if (target.health <= 0) {
+                            score += 10; // Incrementar puntuación al destruir
+                            currentLevelScore += 10; // Para el progreso del nivel
+                            scoreDisplay.textContent = score;
+                            targets.splice(j, 1); // Eliminar objetivo
+                            
+                            // Comprobar si se puede subir de nivel
+                            if (currentLevel < MAX_LEVEL && currentLevelScore >= TARGETS_TO_LEVEL_UP) {
+                                levelUp();
+                            }
+                        }
                         break; // Salir del bucle interno, la bala ya fue destruida
                     }
                 }
             }
         }
 
-        // Crea un nuevo objetivo y lo añade al array
+        // Crea un nuevo objetivo (insecto) y lo añade al array
         function spawnTarget() {
             const x = Math.random() * (canvas.width - targetSize); // Posición X aleatoria
             const speed = Math.random() * (targetSpeedMax - targetSpeedMin) + targetSpeedMin; // Velocidad aleatoria
+
             targets.push({
                 x: x,
                 y: -targetSize, // Aparece justo fuera de la parte superior del canvas
                 size: targetSize,
-                color: targetColor,
+                color: targetBodyColor,
                 speed: speed,
+                health: targetInitialHealth, // Vida del insecto
+                maxHealth: targetInitialHealth,
             });
         }
 
@@ -352,58 +498,137 @@
 
         // --- Funciones de Control de Juego ---
 
+        // Configura la dificultad según el nivel actual
+        function setDifficultyForLevel(level) {
+            // Aumentar la velocidad
+            targetSpeedMin = 1.5 + (level - 1) * 0.2;
+            targetSpeedMax = 4 + (level - 1) * 0.3;
+
+            // Reducir el intervalo de aparición (más objetivos)
+            targetSpawnInterval = Math.max(200, 1200 - (level - 1) * 60);
+
+            // Aumentar la vida de los insectos
+            targetInitialHealth = 1 + Math.floor((level - 1) / 3); // Cada 3 niveles, aumenta la vida en 1
+
+            // Nivel 20: IMPOSIBLE
+            if (level === MAX_LEVEL) {
+                targetSpeedMin = 8; // Muy rápidos
+                targetSpeedMax = 12;
+                targetSpawnInterval = 100; // Demasiados objetivos
+                targetInitialHealth = 5; // Más resistentes
+            }
+        }
+
+        // Sube de nivel al jugador
+        function levelUp() {
+            currentLevel++;
+            currentLevelScore = 0; // Resetear puntuación para el siguiente nivel
+            levelDisplay.textContent = currentLevel;
+            missedTargets = 0; // Resetear perdidos
+            missedDisplay.textContent = `${missedTargets} / ${MAX_MISSED_TARGETS_PER_LEVEL}`;
+            
+            // Actualizar dificultad
+            setDifficultyForLevel(currentLevel);
+
+            // Mostrar un mensaje de subida de nivel
+            messageText.textContent = `¡NIVEL ${currentLevel} ALCANZADO!`;
+            startButton.textContent = 'Continuar';
+            gameMessage.style.display = 'flex';
+            gameRunning = false; // Pausar el juego brevemente
+            
+            // Reanudar el juego después de un breve retraso para que el jugador lea
+            setTimeout(() => {
+                gameMessage.style.display = 'none';
+                gameRunning = true;
+                lastTargetSpawnTime = Date.now(); // Reiniciar el contador de aparición
+                gameLoop(); // Reanudar el bucle
+            }, 2000); // 2 segundos de pausa
+        }
+
         // Inicializa o reinicia el juego
         function startGame() {
             score = 0;
             missedTargets = 0;
+            currentLevel = 1;
+            currentLevelScore = 0;
+            player.health = player.maxHealth; // Restablecer vida del jugador
+
             bullets.length = 0; // Vaciar array de balas
             targets.length = 0; // Vaciar array de objetivos
+
             scoreDisplay.textContent = score;
-            missedDisplay.textContent = `${missedTargets} / ${MAX_MISSED_TARGETS}`;
+            missedDisplay.textContent = `${missedTargets} / ${MAX_MISSED_TARGETS_PER_LEVEL}`;
+            levelDisplay.textContent = currentLevel;
+            updatePlayerHealthDisplay(); // Actualizar barra de vida al inicio
 
             gameMessage.style.display = 'none'; // Ocultar el mensaje de inicio/fin
             gameRunning = true; // Establecer el estado del juego a corriendo
             lastTargetSpawnTime = Date.now(); // Resetear el tiempo de generación de objetivos
+
+            setDifficultyForLevel(currentLevel); // Configurar dificultad para el nivel 1
             gameLoop(); // Iniciar el bucle del juego
         }
 
         // Finaliza el juego
         function endGame() {
             gameRunning = false; // Detener el juego
-            messageText.textContent = `¡GAME OVER! Puntuación Final: ${score}`;
+            if (player.health <= 0) {
+                messageText.textContent = `¡GAME OVER! Puntuación Final: ${score} (Nivel ${currentLevel})`;
+            } else {
+                messageText.textContent = `¡HAS GANADO! Completaste todos los niveles. Puntuación Final: ${score}`;
+            }
             startButton.textContent = 'Jugar de Nuevo';
             gameMessage.style.display = 'flex'; // Mostrar el mensaje de Game Over
         }
 
         // --- Eventos ---
 
-        // Evento de clic en el canvas para disparar
-        canvas.addEventListener('click', () => {
+        // Evento de clic en el canvas para disparar (para PC)
+        canvas.addEventListener('click', (event) => {
             if (gameRunning) {
                 shoot();
             }
         });
 
-        // Evento para el botón de inicio/reinicio
-        startButton.addEventListener('click', startGame);
-
-        // *** CAMBIO CLAVE: Evento para mover el cañón con el ratón ***
+        // Evento de movimiento del ratón para mover el cañón (para PC)
         canvas.addEventListener('mousemove', (event) => {
             if (gameRunning) {
-                // Obtener la posición X del ratón relativa al canvas
                 const mouseX = event.clientX - canvas.getBoundingClientRect().left;
-
-                // Actualizar la posición X del jugador
-                // Se asegura de que el cañón no se salga de los límites del canvas
                 player.x = Math.max(0, Math.min(mouseX - player.width / 2, canvas.width - player.width));
             }
         });
+
+        // --- Eventos Táctiles para Android/Móviles ---
+        canvas.addEventListener('touchstart', (event) => {
+            if (gameRunning) {
+                event.preventDefault(); // Prevenir el scroll/zoom por defecto
+                // Disparar una bala con el primer toque
+                shoot();
+                // Guardar la posición inicial del toque para detectar movimiento
+                touchStartX = event.touches[0].clientX;
+            }
+        }, { passive: false }); // Usar { passive: false } para permitir preventDefault
+
+        canvas.addEventListener('touchmove', (event) => {
+            if (gameRunning && event.touches.length > 0) {
+                event.preventDefault(); // Prevenir el scroll/zoom por defecto
+
+                const touchX = event.touches[0].clientX - canvas.getBoundingClientRect().left;
+                
+                // Mover el cañón directamente a la posición del toque
+                player.x = Math.max(0, Math.min(touchX - player.width / 2, canvas.width - player.width));
+            }
+        }, { passive: false });
+
+        // Evento para el botón de inicio/reinicio
+        startButton.addEventListener('click', startGame);
 
         // Iniciar con un mensaje de bienvenida
         window.onload = function() {
             messageText.textContent = 'Haz clic en Jugar para comenzar';
             startButton.textContent = 'Jugar';
             gameMessage.style.display = 'flex'; // Mostrar el mensaje de inicio
+            updatePlayerHealthDisplay(); // Asegurar que la barra de vida se dibuje al cargar
         };
     </script>
 </body>
